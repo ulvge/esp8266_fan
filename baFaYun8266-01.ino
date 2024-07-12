@@ -10,12 +10,8 @@
 #include "comm.h"
 #include <PubSubClient.h>
 
-const int LED_Pin = 12;                          // 单片机LED引脚值，D2是NodeMcu引脚命名方式，其他esp8266型号将D2改为自己的引脚
 
-const int buttonPin = 13;  // input
-const int ledPinRed = 16;  // output
-const int ledPinBlue = 12; // output
-const int outputPin = 14;  // output
+const int outputPin = 2;  // output
 
 //**************************************************//
 // 最大字节数
@@ -48,17 +44,10 @@ void setup()
     Serial.begin(115200);
     delay(500);
 
-    pinMode(buttonPin, INPUT);
-
-    pinMode(ledPinRed, OUTPUT);
-    pinMode(ledPinBlue, OUTPUT);
-    setLed(LED_MODE_BLINK);
-
+    digitalWrite(outputPin, HIGH);
     pinMode(outputPin, OUTPUT);
-    digitalWrite(outputPin, LOW);
+    digitalWrite(outputPin, HIGH);
 
-    pinMode(LED_Pin, OUTPUT);
-    digitalWrite(LED_Pin, HIGH);
     Serial.println("");
     Serial.println("");
     Serial.println("Beginning...");
@@ -71,8 +60,6 @@ void loop()
 {
     doWiFiTick();
     doTCPClientTick();
-    monitorButton();
 
-    updateState(false);
     delay(10);
 }

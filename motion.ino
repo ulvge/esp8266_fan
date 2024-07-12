@@ -63,22 +63,21 @@ void doTCPClientTick()
             Serial.print("msg:--------");
             Serial.println(getMsg); // 打印截取到的消息值
         }
-        if (getMsg == "on") { // 如果收到指令on==打开灯
-            digitalWrite(outputPin, HIGH);
-            setLed(LED_MODE_RED_OFF);
-            setLed(LED_MODE_BLUE_ON);
-        } else if (getMsg == "off") { // 如果收到指令off==关闭灯
+        if ((getMsg == "on") || (getMsg == "off")) { // 开关机
+            Serial.print("power on/off prepare....");
             digitalWrite(outputPin, LOW);
-            setLed(LED_MODE_RED_OFF);
-            setLed(LED_MODE_BLUE_OFF);
+            delay(POWER_ON_OFF_DURATION);
+            digitalWrite(outputPin, HIGH);
+            Serial.print("power on/off finished ");
+        } else if (getMsg == "force") { // 强制开关机
+            Serial.print("force power off prepare....");
+            digitalWrite(outputPin, LOW);
+            delay(POWER_OFF_FROCE_DURATION);
+            digitalWrite(outputPin, HIGH);
+            Serial.print("force power off finished");
         } else if (getMsg == "update") { // 如果收到指令update
             updateBin();                 // 执行升级函数
-        } else if (getMsg == "led en") {
-            setLed(LED_MODE_EN); 
-        } else if (getMsg == "led dis") { // 如果收到指令update
-            setLed(LED_MODE_DIS); 
-        }
-        
+        } 
 
         TcpClient_Buff = "";
         TcpClient_BuffIndex = 0;
@@ -161,117 +160,5 @@ void doWiFiTick()
         }
     }else{
         taskStarted = false;
-    }
-}
-
-int g_ledMode = LED_MODE_OFF;
-
-// cmd enable disable.
-// init: LED_MODE_BLINK
-// button: LED_MODE_BLUE_OFF; LED_MODE_RED_ON/OFF
-// msg:  LED_MODE_BLUE_ON/OFF; LED_MODE_RED_OFF
-void setLed(int mode)
-{
-    static int state = 0;
-    static int blinkCount = 0;
-    static int enable = 1;
-    switch (mode) {
-    case LED_MODE_EN:
-        enable = 1;
-        break;
-    case LED_MODE_DIS:
-        enable = 0;
-    case LED_MODE_OFF:
-        digitalWrite(ledPinRed, LOW);
-        digitalWrite(ledPinBlue, LOW);
-        break;
-    case LED_MODE_RED_ON:
-        if (!enable)
-            break;
-        digitalWrite(ledPinRed, HIGH);
-        break;
-    case LED_MODE_RED_OFF:
-        if (!enable)
-            break;
-        digitalWrite(ledPinRed, LOW);
-        break;
-    case LED_MODE_BLUE_ON:
-        if (!enable)
-            break;
-        digitalWrite(ledPinBlue, HIGH);
-        break;
-    case LED_MODE_BLUE_OFF:
-        if (!enable)
-            break;
-        digitalWrite(ledPinBlue, LOW);
-        break;
-    case LED_MODE_PINK:
-        if (!enable)
-            break;
-        digitalWrite(ledPinRed, HIGH);
-        digitalWrite(ledPinBlue, HIGH);
-    case LED_MODE_BLINK:
-        if (blinkCount++ > 100) {
-            blinkCount = 0;
-            state = !state;
-            digitalWrite(ledPinRed, state);
-            digitalWrite(ledPinBlue, state);
-        }
-        break;
-    }
-    g_ledMode = mode;
-}
-
-const unsigned int debounceDelay = 30;
-unsigned int lastDebounceTime;
-void monitorButton()
-{
-    // read the state of the pushbutton value:
-    static int buttonStateLast = 0;
-    static int isChanged = 0;
-    int buttonState = digitalRead(buttonPin);
-    // 检查是否需要去抖（按键状态是否发生变化）
-    if (buttonState == LOW) {
-        if (buttonState != buttonStateLast) { // 刚按下，记录当前时间
-            isChanged = 0;
-            lastDebounceTime = millis();                          // 记录上次变化的时间
-        } else {                                                  // 一直被按下
-            if ((millis() - lastDebounceTime) >= debounceDelay) { // 满足去抖条件
-                if (isChanged == 0) {
-                    isChanged = 1;
-                    int newState = !digitalRead(outputPin);
-                    digitalWrite(outputPin, newState);
-                    setLed(newState ? LED_MODE_RED_ON : LED_MODE_RED_OFF);
-                    setLed(LED_MODE_BLUE_OFF);
-                    updateState(true);
-                    Serial.printf("Button pressed, now outputPin state is %d\n", newState);
-                }
-            }
-        }
-    } else {
-        isChanged = 0;
-    }
-    buttonStateLast = buttonState; // update
-}
-
-void updateState(int isNeedUpdate)
-{
-    static int isUpdateFinished = false;
-    if (isNeedUpdate) {
-        isUpdateFinished = false;
-    }
-    if (!isUpdateFinished){
-        if (!TCPclient.connected()){
-            return;
-        }
-        int nowState = digitalRead(outputPin);
-        if (nowState == 1) {
-            publishClient.publish(TOPIC"/up", "ON");
-            //publishClient.publish(TOPIC"/up", "on");
-        } else {
-            publishClient.publish(TOPIC"/up", "OFF");
-            //publishClient.publish(TOPIC"/up", "off");
-        }
-        isUpdateFinished = true;
     }
 }
