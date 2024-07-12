@@ -36,7 +36,27 @@ void doTCPClientTick();
 void startTCPClient();
 void sendtoTCPServer(String p);
 
+void printHardwareInfo()
+{
+    unsigned int flashRealSize = ESP.getFlashChipRealSize();
+    unsigned int flashSize = ESP.getFlashChipSize();
+    unsigned int flashSpeed = ESP.getFlashChipSpeed();
+    unsigned int sketchSize = ESP.getSketchSize();
+    unsigned int freeSketchSpace = ESP.getFreeSketchSpace();
 
+    Serial.printf("Flash real size: %u bytes (%.2f KB, %.2f MB)\n", flashRealSize, flashRealSize / 1024.0, flashRealSize / (1024.0 * 1024.0));
+    Serial.printf("Flash size: %u bytes (%.2f KB, %.2f MB)\n", flashSize, flashSize / 1024.0, flashSize / (1024.0 * 1024.0));
+    Serial.printf("Flash speed: %u Hz\n", flashSpeed);
+    Serial.printf("Sketch size: %u bytes (%.2f KB, %.2f MB)\n", sketchSize, sketchSize / 1024.0, sketchSize / (1024.0 * 1024.0));
+    Serial.printf("Free sketch space: %u bytes (%.2f KB, %.2f MB)\n", freeSketchSpace, freeSketchSpace / 1024.0, freeSketchSpace / (1024.0 * 1024.0));
+
+    // 4Mbit = 0.5MByte  fre=10M
+    // Flash real size: 524288 bytes (512.00 KB, 0.50 MB)
+    // Flash size: 524288 bytes (512.00 KB, 0.50 MB)
+    // Flash speed: 40000000 Hz 
+    // Sketch size: 308928 bytes (301.69 KB, 0.29 MB)
+    // Free sketch space: 1785856 bytes (1744.00 KB, 1.70 MB)
+}
 // 初始化，相当于main 函数
 void setup()
 {
@@ -50,8 +70,9 @@ void setup()
 
     Serial.println("");
     Serial.println("");
+    printHardwareInfo();
     Serial.println("Beginning...");
-    
+
     publishClient.setServer(server_ip, server_port);
 }
 

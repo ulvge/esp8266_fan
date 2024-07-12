@@ -4,10 +4,39 @@
  * 在需要升级的地方，加上这个函数即可，例如setup中加的updateBin();
  * 原理：通过http请求获取远程固件，实现升级
  */
+
+
+//当升级开始时，打印日志
+void update_started() {
+  Serial.println("CALLBACK:  HTTP update process started");
+}
+
+//当升级结束时，打印日志
+void update_finished() {
+  Serial.println("CALLBACK:  HTTP update process finished");
+}
+
+//当升级中，打印日志
+void update_progress(int cur, int total) {
+  Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes...\n", cur, total);
+}
+
+//当升级失败时，打印日志
+void update_error(int err) {
+  Serial.printf("CALLBACK:  HTTP update fatal error code %d\n", err);
+}
+
+
 void updateBin()
 {
     Serial.println("start update");
     WiFiClient UpdateClient;
+    
+    ESPhttpUpdate.onStart(update_started);//当升级开始时
+    ESPhttpUpdate.onEnd(update_finished); //当升级结束时
+    ESPhttpUpdate.onProgress(update_progress); //当升级中
+    ESPhttpUpdate.onError(update_error); //当升级失败时
+
     t_httpUpdate_return ret = ESPhttpUpdate.update(UpdateClient, g_updateURL);
     switch (ret) {
     case HTTP_UPDATE_FAILED: // 当升级失败
