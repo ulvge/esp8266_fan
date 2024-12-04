@@ -11,30 +11,18 @@
 #include <PubSubClient.h>
 
 
-const int outputPin = 2;  // output
+const int powerCheckPin = 0;  // input ispower on now
+const int outputPin = 2;  // output 输出开关机、重启的脉冲
 
 //**************************************************//
-// 最大字节数
-#define MAX_PACKETSIZE 512
-// 设置心跳值30s
-#define KEEPALIVEATIME 30 * 1000
 // tcp客户端相关初始化，默认即可
-WiFiClient TCPclient;
-PubSubClient publishClient(TCPclient);
-String TcpClient_Buff = ""; // 初始化字符串，用于接收服务器发来的数据
-unsigned int TcpClient_BuffIndex = 0;
-unsigned long TcpClient_preTick = 0;
-unsigned long preHeartTick = 0;    // 心跳
-unsigned long preTCPStartTick = 0; // 连接
-bool preTCPConnected = false;
+WiFiClient wifiClient;
+PubSubClient MQTTClient(wifiClient);
 // 相关函数初始化
 // 连接WIFI
-void doWiFiTick();
+bool doWiFiConnect();
+bool MQTT_reconnect();
 
-// TCP初始化连接
-void doTCPClientTick();
-void startTCPClient();
-void sendtoTCPServer(String p);
 
 void printHardwareInfo()
 {
@@ -49,6 +37,8 @@ void printHardwareInfo()
     Serial.printf("Flash speed: %u Hz\n", flashSpeed);
     Serial.printf("Sketch size: %u bytes (%.2f KB, %.2f MB)\n", sketchSize, sketchSize / 1024.0, sketchSize / (1024.0 * 1024.0));
     Serial.printf("Free sketch space: %u bytes (%.2f KB, %.2f MB)\n", freeSketchSpace, freeSketchSpace / 1024.0, freeSketchSpace / (1024.0 * 1024.0));
+    Serial.printf("default CPU Frequency: %d MHz\r\n", ESP.getCpuFreqMHz());
+    Serial.printf("OTA url: %s\r\n", g_updateURL.c_str());
 
     // 4Mbit = 0.5MByte  fre=10M
     // Flash real size: 524288 bytes (512.00 KB, 0.50 MB)
@@ -64,6 +54,7 @@ void setup()
     Serial.begin(115200);
     delay(500);
 
+    pinMode(powerCheckPin, INPUT);
     digitalWrite(outputPin, HIGH);
     pinMode(outputPin, OUTPUT);
     digitalWrite(outputPin, HIGH);
@@ -73,14 +64,29 @@ void setup()
     printHardwareInfo();
     Serial.println("Beginning...");
 
-    publishClient.setServer(server_ip, server_port);
+    MQTTClient.setServer(server_ip, server_port);
+    MQTTClient.setCallback(MsgCallBack);
 }
 
 // 循环
 void loop()
 {
-    doWiFiTick();
-    doTCPClientTick();
+    static unsigned long lastUpdateTick;
+    unsigned long currentTick = millis();
+    bool isFirstConnect = false;
 
+    isFirstConnect = doWiFiConnect();
+    if (MQTTClient.state() != MQTT_CONNECTED){
+        isFirstConnect |= MQTT_reconnect();
+    }else{
+        MQTTClient.loop();
+    }
+    monitorButton();
+
+    if (isFirstConnect || (currentTick - lastUpdateTick >= 60 * 1000)) {
+        lastUpdateTick = currentTick;
+        updateState(UPDATE_PERIOD, -1);
+    }
+    keepLive();
     delay(10);
 }

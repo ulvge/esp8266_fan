@@ -4,83 +4,59 @@
 // 定义Wi-Fi账号和密码
 const char *wifiCredentials[][2] = {
     {"FAST_FFF43A", "1234567890"},
-    {"5530", "123456780"}
-    };
+    {"5530", "123456780"},
+    {"hxzy_guest", "hxzy123123!"}
+};
 
 const int wifiCount = sizeof(wifiCredentials) / sizeof(wifiCredentials[0]);
-
-/*
- *检查数据，发送心跳
- */
-void doTCPClientTick()
+/// @brief 短按开关机
+/// @param  
+void PowerCtrl(void)
 {
-    // 检查是否断开，断开后重连
-    if (WiFi.status() != WL_CONNECTED)
-        return;
-    if (!TCPclient.connected()) { // 断开重连
-        if (preTCPConnected == true) {
-            preTCPConnected = false;
-            preTCPStartTick = millis();
-            Serial.println();
-            Serial.println("TCP Client disconnected.");
-            TCPclient.stop();
-        } else if (millis() - preTCPStartTick > 1 * 1000) // 重新连接
-            startTCPClient();
+    Serial.println("power on/off prepare....");
+    digitalWrite(outputPin, LOW);
+    delay(POWER_ON_OFF_DURATION);
+    digitalWrite(outputPin, HIGH);
+    Serial.println("power on/off finished ");
+}
+/// @brief 强制关机
+/// @param  
+void PowerCtrlForceOff(void)
+{
+    Serial.println("force power off prepare....");
+    digitalWrite(outputPin, LOW);
+    delay(POWER_OFF_FROCE_DURATION);
+    digitalWrite(outputPin, HIGH);
+    Serial.println("force power off finished");
+}
+bool ParaCMD(byte *payload, unsigned int payloadLength, const char *cmd)
+{
+    uint32_t cmdLen = strlen(cmd);
+    if (payloadLength >= cmdLen && strncmp((char *)payload, cmd, cmdLen) == 0) {
+        return true;
     } else {
-        if (TCPclient.available()) { // 收数据
-            char c = TCPclient.read();
-            TcpClient_Buff += c;
-            TcpClient_BuffIndex++;
-            TcpClient_preTick = millis();
-
-            if (TcpClient_BuffIndex >= MAX_PACKETSIZE - 1) {
-                TcpClient_BuffIndex = MAX_PACKETSIZE - 2;
-                TcpClient_preTick = TcpClient_preTick - 200;
-            }
-            preHeartTick = millis();
-        }
-        if (millis() - preHeartTick >= KEEPALIVEATIME) { // 保持心跳
-            preHeartTick = millis();
-            Serial.println("--Keep alive:");
-            sendtoTCPServer("ping\r\n"); // 发送心跳，指令需\r\n结尾，详见接入文档介绍
-        }
+        return false;
     }
-    if ((TcpClient_Buff.length() >= 1) && (millis() - TcpClient_preTick >= 200)) {
-        TCPclient.flush();
-        Serial.print("Rev string: ");
-        TcpClient_Buff.trim();          // 去掉首位空格
-        Serial.println(TcpClient_Buff); // 打印接收到的消息
-        String getTopic = "";
-        String getMsg = "";
-        if (TcpClient_Buff.length() > 15) { // 注意TcpClient_Buff只是个字符串，在上面开头做了初始化 String TcpClient_Buff = "";
-            // 此时会收到推送的指令，指令大概为 cmd=2&uid=xxx&topic=light002&msg=off
-            int topicIndex = TcpClient_Buff.indexOf("&topic=") + 7;    // c语言字符串查找，查找&topic=位置，并移动7位，不懂的可百度c语言字符串查找
-            int msgIndex = TcpClient_Buff.indexOf("&msg=");            // c语言字符串查找，查找&msg=位置
-            getTopic = TcpClient_Buff.substring(topicIndex, msgIndex); // c语言字符串截取，截取到topic,不懂的可百度c语言字符串截取
-            getMsg = TcpClient_Buff.substring(msgIndex + 5);           // c语言字符串截取，截取到消息
-            Serial.print("topic:------");
-            Serial.println(getTopic); // 打印截取到的主题值
-            Serial.print("msg:--------");
-            Serial.println(getMsg); // 打印截取到的消息值
-        }
-        if ((getMsg == "on") || (getMsg == "off")) { // 开关机
-            Serial.print("power on/off prepare....");
-            digitalWrite(outputPin, LOW);
-            delay(POWER_ON_OFF_DURATION);
-            digitalWrite(outputPin, HIGH);
-            Serial.print("power on/off finished ");
-        } else if (getMsg == "force") { // 强制开关机
-            Serial.print("force power off prepare....");
-            digitalWrite(outputPin, LOW);
-            delay(POWER_OFF_FROCE_DURATION);
-            digitalWrite(outputPin, HIGH);
-            Serial.print("force power off finished");
-        } else if (getMsg == "update") { // 如果收到指令update
-            updateBin();                 // 执行升级函数
-        } 
-
-        TcpClient_Buff = "";
-        TcpClient_BuffIndex = 0;
+}
+/*订阅的主题有消息发布时的回调函数*/
+void MsgCallBack(char *topic, byte *payload, unsigned int length)
+{
+    Serial.printf("Rev string: topic = %s\r\n", topic);
+    Serial.printf("\tmsg : ");
+    for (int i = 0; i < length; i++) {
+        Serial.print((char)payload[i]); // 打印主题内容
+    }
+    Serial.println("");
+    if (ParaCMD(payload, length, CUSTOM_CMD_UPDATE_FIRMWARE)) { // 如果收到指令update
+        updateBin();
+    } else if (ParaCMD(payload, length, CUSTOM_CMD_ON) || ParaCMD(payload, length, CUSTOM_CMD_OFF)) {
+        PowerCtrl();
+    } else if (ParaCMD(payload, length, CUSTOM_CMD_FORCE_POWEROFF)) {
+        PowerCtrlForceOff();
+    } else if (ParaCMD(payload, length, CUSTOM_CMD_GET)) {
+        updateState(UPDATE_PERIOD, -1);
+    } else if (ParaCMD(payload, length, CUSTOM_CMD_HELP)) {
+        UpdateStateToServer(g_allCommandString);
     }
 }
 
@@ -88,8 +64,8 @@ void doTCPClientTick()
                                  WIFI
 ***************************************************************************/
 
-//0:未连上
-//1:已连接
+// 0:未连上
+// 1:已连接
 int setup_wifi()
 {
     static int i = -1;
@@ -110,13 +86,13 @@ int setup_wifi()
         if (WiFi.status() != WL_CONNECTED) {
             WiFi.begin(wifiCredentials[i][0], wifiCredentials[i][1]);
             Serial.printf("Connecting to %s\n", wifiCredentials[i][0]);
-        }else{
+        } else {
             return 1;
         }
-    }else{
+    } else {
         // 等待WiFi连接
         if (WiFi.status() != WL_CONNECTED) {
-            if (retry % 100 == 0){
+            if (retry % 100 == 0) {
                 Serial.print(".");
             }
         } else {
@@ -126,13 +102,33 @@ int setup_wifi()
     retry++;
     return 0;
 }
+/*重连MQTT函数*/
+bool MQTT_reconnect()
+{
+    if (WiFi.status() != WL_CONNECTED) {
+        return false; // waitting for connect wifi first
+    }
+    if (MQTTClient.state() != MQTT_CONNECTED) {
+        Serial.println("Attempting MQTT connection...");
+        // 尝试去连接
+        if (MQTTClient.connect(UID)) {
+            Serial.println("MQTT connected");   // 连接成功
+            MQTTClient.subscribe(TOPIC_PCPowerCtrl); // 订阅主题
+            return true;
+        } else {
+            Serial.print("failed, rc="); // 连接失败，输出状态，五秒后重试
+            Serial.print(MQTTClient.state());
+        }
+    }
+    return false;
+}
 /*
   WiFiTick
   检查是否需要初始化WiFi
   检查WiFi是否连接上，若连接成功启动TCP Client
   控制指示灯
 */
-void doWiFiTick()
+bool doWiFiConnect()
 {
     static bool startSTAFlag = false;
     static bool taskStarted = false;
@@ -143,22 +139,96 @@ void doWiFiTick()
         WiFi.mode(WIFI_STA);
     }
 
-    if (setup_wifi() == 1){
+    if (setup_wifi() == 1) {
         // 每次连接成功之后，设置一次
-        if (!taskStarted){
+        if (!taskStarted) {
             taskStarted = true;
-            
+
             // wifi连接成功后输出成功信息
             Serial.println("");
             Serial.println("WiFi Connected!"); // 显示wifi连接成功
             Serial.println(WiFi.localIP());    // 返回wifi分配的IP
             Serial.println(WiFi.macAddress()); // 返回设备的MAC地址
             Serial.println("");
-            randomSeed(micros());
-            
-            startTCPClient();
+            return true;
         }
-    }else{
+    } else {
         taskStarted = false;
+    }
+    return false;
+}
+
+// https://cloud.bemfa.com/docs/src/tcp.html#%E5%AD%97%E6%AE%B5%E8%AF%B4%E6%98%8E
+/// @brief 发送任意数据 为心跳消息,包括上述指令也算是心跳，但要以回车换行结尾。
+/// 心跳消息是告诉服务器设备还在线，建议60秒发送一次，超过65秒未发送心跳会掉线。
+/// @param
+void keepLive(void)
+{
+    static unsigned long lastSendLiveTick;
+    unsigned long currentTick;
+    currentTick = millis();
+    if (currentTick - lastSendLiveTick >= KEEPALIVEATIME) {
+        Serial.println("--Keep alive:");
+        MQTTClient.publish(TOPIC_KEEP_ALIVE, "anything\r\n"); // 发送心跳
+        lastSendLiveTick = currentTick;
+    }
+}
+const unsigned int debounceDelay = 30;
+unsigned int lastDebounceTime;
+void monitorButton()
+{
+    // read the state of the pushbutton value:
+    static int buttonStateLast = 0;
+    int isChanged = 0;
+    int buttonState = digitalRead(powerCheckPin);
+    if (buttonState != buttonStateLast) {
+        delay(10);
+        buttonState = digitalRead(powerCheckPin);
+        if (buttonState != buttonStateLast) {
+            updateState(UPDATE_STATE_CHANGED, buttonState);
+            buttonStateLast = buttonState;
+        }
+    }
+}
+
+bool UpdateStateToServer(String cmd)
+{
+    char topic[64];
+    if (!wifiClient.connected()) {
+        return false;
+    }
+    // 推送消息时：主题名后加/set推送消息，表示向所有订阅这个主题的设备们推送消息，假如推送者自己也订阅了这个主题，
+    // 消息不会被推送给它自己，以防止自己推送的消息被自己接收。 例如向主题 light002推送数据，可为 light002/set。
+    snprintf(topic, sizeof(topic), "%s/set", TOPIC_PCPowerCtrl);
+    MQTTClient.publish(topic, cmd.c_str());
+    return true;
+}
+/// @brief 发送消息到服务器
+/// @param updateMode 周期性更新还是状态改变更新，周期性更新时，用上次的状态，状态改变时，用当前状态
+/// @param nowState 只有在状态改变时才需要传入当前状态，周期性更新时，忽略此参数
+void updateState(UPDATE_MODE_t updateMode, int nowState)
+{
+    static int lastStateBak;
+    if (!wifiClient.connected()) {
+        return;
+    }
+    switch (updateMode) {
+    case UPDATE_PERIOD:
+        nowState = lastStateBak;
+    case UPDATE_STATE_CHANGED:
+        lastStateBak = nowState;
+        if (nowState == 1) {
+            UpdateStateToServer("ON");
+        } else {
+            UpdateStateToServer("OFF");
+        }
+        if (updateMode == UPDATE_PERIOD) {
+            Serial.printf("UpdateStateToServer force, now state = %d\r\n", nowState);
+        } else {
+            Serial.printf("UpdateStateToServer power state changed to = %d\r\n", nowState);
+        }
+        break;
+    default:
+        break;
     }
 }
