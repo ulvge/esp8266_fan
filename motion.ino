@@ -1,6 +1,11 @@
-
-
 #include "comm.h"
+
+void updateBin();
+static void CmdGetHandler();
+static void CmdPowerCtrlHandler(void);
+static void CmdHelpHandler();
+static void CmdPowerCtrlHandlerForceOff(void);
+
 // 定义Wi-Fi账号和密码
 const char *wifiCredentials[][2] = {
     {"FAST_FFF43A", "1234567890"},
@@ -8,10 +13,36 @@ const char *wifiCredentials[][2] = {
     {"hxzy_guest", "hxzy123123!"}
 };
 
+typedef  void (*CmdHandler)(void);
+typedef struct {
+    String              alias; //  人为输入的字符串,可能存在空格
+    String              cmd;    // 标准命令
+    CmdHandler          cmdHandler;
+} CmdHandlerList;
+const CmdHandlerList cmdList[] = {
+    {"update",      CUSTOM_CMD_UPDATE_FIRMWARE, updateBin},
+    {"get",         CUSTOM_CMD_GET, CmdGetHandler},
+    {"on",          CUSTOM_CMD_ON, CmdPowerCtrlHandler},
+    {"off",         CUSTOM_CMD_OFF, CmdPowerCtrlHandler},
+    {"forceoff",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
+    {"force_off",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
+    {"force off",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
+    {"help",        CUSTOM_CMD_HELP, CmdHelpHandler},
+    {"?",           CUSTOM_CMD_HELP, CmdHelpHandler}
+};
+const String GetAllCmdList(void)
+{
+    String cmdListStr = "#";
+    for (int i = 0; i < sizeof(cmdList) / sizeof(cmdList[0]); i++) {
+        cmdListStr += cmdList[i].cmd;
+        cmdListStr += "#";
+    }
+    return cmdListStr;
+}
 const int wifiCount = sizeof(wifiCredentials) / sizeof(wifiCredentials[0]);
 /// @brief 短按开关机
 /// @param  
-void PowerCtrl(void)
+static void CmdPowerCtrlHandler(void)
 {
     Serial.println("power on/off prepare....");
     digitalWrite(outputPin, LOW);
@@ -21,7 +52,7 @@ void PowerCtrl(void)
 }
 /// @brief 强制关机
 /// @param  
-void PowerCtrlForceOff(void)
+static void CmdPowerCtrlHandlerForceOff(void)
 {
     Serial.println("force power off prepare....");
     digitalWrite(outputPin, LOW);
@@ -29,14 +60,13 @@ void PowerCtrlForceOff(void)
     digitalWrite(outputPin, HIGH);
     Serial.println("force power off finished");
 }
-bool ParaCMD(byte *payload, unsigned int payloadLength, const char *cmd)
+static void CmdGetHandler()
 {
-    uint32_t cmdLen = strlen(cmd);
-    if (payloadLength >= cmdLen && strncmp((char *)payload, cmd, cmdLen) == 0) {
-        return true;
-    } else {
-        return false;
-    }
+    updateState(UPDATE_PERIOD, -1);
+}
+static void CmdHelpHandler()
+{
+    UpdateStateToServer(GetAllCmdList());
 }
 /*订阅的主题有消息发布时的回调函数*/
 void MsgCallBack(char *topic, byte *payload, unsigned int length)
@@ -47,16 +77,13 @@ void MsgCallBack(char *topic, byte *payload, unsigned int length)
         Serial.print((char)payload[i]); // 打印主题内容
     }
     Serial.println("");
-    if (ParaCMD(payload, length, CUSTOM_CMD_UPDATE_FIRMWARE)) { // 如果收到指令update
-        updateBin();
-    } else if (ParaCMD(payload, length, CUSTOM_CMD_ON) || ParaCMD(payload, length, CUSTOM_CMD_OFF)) {
-        PowerCtrl();
-    } else if (ParaCMD(payload, length, CUSTOM_CMD_FORCE_POWEROFF)) {
-        PowerCtrlForceOff();
-    } else if (ParaCMD(payload, length, CUSTOM_CMD_GET)) {
-        updateState(UPDATE_PERIOD, -1);
-    } else if (ParaCMD(payload, length, CUSTOM_CMD_HELP)) {
-        UpdateStateToServer(g_allCommandString);
+
+    // payload 和 alias 相比较，如果匹配，则执行对应的cmdHandler
+    for (int i = 0; i < sizeof(cmdList) / sizeof(cmdList[0]); i++) {
+        uint32_t cmdLen = strlen(cmdList[i].cmd.c_str());
+        if (length >= cmdLen && strncmp((char *)payload, cmdList[i].alias.c_str(), cmdLen) == 0) {
+            cmdList[i].cmdHandler();
+        }
     }
 }
 

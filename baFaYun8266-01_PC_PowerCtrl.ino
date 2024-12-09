@@ -11,7 +11,7 @@
 #include <PubSubClient.h>
 
 
-const int powerCheckPin = 0;  // input ispower on now
+const int powerCheckPin = 0;  // 默认是高，低有效。input ispower on now
 const int outputPin = 2;  // output 输出开关机、重启的脉冲
 
 //**************************************************//

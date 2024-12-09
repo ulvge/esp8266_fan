@@ -17,12 +17,6 @@ typedef enum {
 #define CUSTOM_CMD_FORCE_POWEROFF    "forceoff"// 长按关机
 #define CUSTOM_CMD_HELP              "help"
 
-
-const String g_allCommandString = "#" + String(CUSTOM_CMD_GET) + "#" +
-                           String(CUSTOM_CMD_ON) + "#" +
-                           String(CUSTOM_CMD_OFF) + "#" +
-                           String(CUSTOM_CMD_FORCE_POWEROFF) + "#" +
-                           String(CUSTOM_CMD_UPDATE_FIRMWARE);
 #define TOPIC_KEEP_ALIVE "alive" 
 #define KEEPALIVEATIME 30 * 1000
 //********************需要修改的部分*******************//
