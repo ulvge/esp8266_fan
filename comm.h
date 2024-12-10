@@ -16,9 +16,12 @@ typedef enum {
 #define CUSTOM_CMD_OFF               "off"// 短按关机
 #define CUSTOM_CMD_FORCE_POWEROFF    "forceoff"// 长按关机
 #define CUSTOM_CMD_HELP              "help"
+#define CUSTOM_CMD_RF_DB              "db"
 
 #define TOPIC_KEEP_ALIVE "alive" 
 #define KEEPALIVEATIME 30 * 1000
+#define WIFI_POWER_DB_DEFALUT   18 // max=20, min=0. 10，在旁边也连不上
+
 //********************需要修改的部分*******************//
 #define server_ip "bemfa.com" // 巴法云服务器地址默认即可
 #define server_port 9501    // 服务器端口，tcp创客云端口8344

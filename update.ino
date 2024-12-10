@@ -27,7 +27,7 @@ void update_error(int err) {
 }
 
 
-void updateBin()
+void updateBin(char* para)
 {
     Serial.println("start update");
     WiFiClient UpdateClient;

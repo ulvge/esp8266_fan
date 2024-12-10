@@ -11,8 +11,8 @@
 #include <PubSubClient.h>
 
 
-const int powerCheckPin = 0;  // 默认是高，低有效。input ispower on now
-const int outputPin = 2;  // output 输出开关机、重启的脉冲
+const int powerCheckPin = 2;  // 默认是高，低有效。input ispower on now
+const int outputPin = 0;  // output 输出开关机、重启的脉冲,接的是笔记本的key，上电是有电，为高，满足上电为高的需求
 
 //**************************************************//
 // tcp客户端相关初始化，默认即可
@@ -23,7 +23,7 @@ PubSubClient MQTTClient(wifiClient);
 bool doWiFiConnect();
 bool MQTT_reconnect();
 
-
+uint32_t g_powerDB = WIFI_POWER_DB_DEFALUT;
 void printHardwareInfo()
 {
     unsigned int flashRealSize = ESP.getFlashChipRealSize();
@@ -40,6 +40,8 @@ void printHardwareInfo()
     Serial.printf("default CPU Frequency: %d MHz\r\n", ESP.getCpuFreqMHz());
     Serial.printf("OTA url: %s\r\n", g_updateURL.c_str());
 
+    Serial.printf("Build Date: %s\n", __DATE__);
+    Serial.printf("Build Time: %s\n", __TIME__);
     // 4Mbit = 0.5MByte  fre=10M
     // Flash real size: 524288 bytes (512.00 KB, 0.50 MB)
     // Flash size: 524288 bytes (512.00 KB, 0.50 MB)
@@ -50,20 +52,19 @@ void printHardwareInfo()
 // 初始化，相当于main 函数
 void setup()
 {
-    delay(200);
-    Serial.begin(115200);
-    delay(500);
-
     pinMode(powerCheckPin, INPUT);
     digitalWrite(outputPin, HIGH);
     pinMode(outputPin, OUTPUT);
     digitalWrite(outputPin, HIGH);
 
+    Serial.begin(115200);
     Serial.println("");
     Serial.println("");
     printHardwareInfo();
+    ESP.wdtEnable(WDTO_8S);
+    ESP.wdtFeed();
+    delay(2000);
     Serial.println("Beginning...");
-
     MQTTClient.setServer(server_ip, server_port);
     MQTTClient.setCallback(MsgCallBack);
 }
@@ -72,21 +73,31 @@ void setup()
 void loop()
 {
     static unsigned long lastUpdateTick;
+    static unsigned long lastPrintTick;
     unsigned long currentTick = millis();
     bool isFirstConnect = false;
 
-    isFirstConnect = doWiFiConnect();
-    if (MQTTClient.state() != MQTT_CONNECTED){
-        isFirstConnect |= MQTT_reconnect();
-    }else{
-        MQTTClient.loop();
-    }
-    monitorButton();
+    doWiFiConnect();
 
-    if (isFirstConnect || (currentTick - lastUpdateTick >= 60 * 1000)) {
-        lastUpdateTick = currentTick;
-        updateState(UPDATE_PERIOD, -1);
+    if (WiFi.status() == WL_CONNECTED) {
+        if (MQTTClient.state() != MQTT_CONNECTED){
+            isFirstConnect = MQTT_reconnect();
+        }
+        if (MQTTClient.state() == MQTT_CONNECTED) {
+            MQTTClient.loop();
+            monitorButton();
+
+            if (isFirstConnect || (currentTick - lastUpdateTick >= 60 * 1000)) {
+                lastUpdateTick = currentTick;
+                updateState(UPDATE_PERIOD, -1);
+            }
+            keepLive();
+        }
     }
-    keepLive();
-    delay(10);
+    if ((currentTick - lastPrintTick) >= 5 * 1000) {
+        lastPrintTick = currentTick;
+        Serial.print(".");
+    }
+    ESP.wdtFeed();
+    delay(20);
 }

@@ -1,6 +1,6 @@
 #include "comm.h"
 
-void updateBin();
+void updateBin(char* para);
 static void CmdGetHandler();
 static void CmdPowerCtrlHandler(void);
 static void CmdHelpHandler();
@@ -13,10 +13,10 @@ const char *wifiCredentials[][2] = {
     {"hxzy_guest", "hxzy123123!"}
 };
 
-typedef  void (*CmdHandler)(void);
+typedef  void (*CmdHandler)(char* para);
 typedef struct {
-    String              alias; //  人为输入的字符串,可能存在空格
-    String              cmd;    // 标准命令
+    const char*              alias; //  人为输入的字符串,可能存在空格
+    const char*              cmd;    // 标准命令
     CmdHandler          cmdHandler;
 } CmdHandlerList;
 const CmdHandlerList cmdList[] = {
@@ -27,6 +27,7 @@ const CmdHandlerList cmdList[] = {
     {"forceoff",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
     {"force_off",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
     {"force off",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
+    {"db",        CUSTOM_CMD_RF_DB, CmdSetPowerHandler},
     {"help",        CUSTOM_CMD_HELP, CmdHelpHandler},
     {"?",           CUSTOM_CMD_HELP, CmdHelpHandler}
 };
@@ -42,7 +43,7 @@ const String GetAllCmdList(void)
 const int wifiCount = sizeof(wifiCredentials) / sizeof(wifiCredentials[0]);
 /// @brief 短按开关机
 /// @param  
-static void CmdPowerCtrlHandler(void)
+static void CmdPowerCtrlHandler(char* para)
 {
     Serial.println("power on/off prepare....");
     digitalWrite(outputPin, LOW);
@@ -52,7 +53,7 @@ static void CmdPowerCtrlHandler(void)
 }
 /// @brief 强制关机
 /// @param  
-static void CmdPowerCtrlHandlerForceOff(void)
+static void CmdPowerCtrlHandlerForceOff(char* para)
 {
     Serial.println("force power off prepare....");
     digitalWrite(outputPin, LOW);
@@ -60,29 +61,44 @@ static void CmdPowerCtrlHandlerForceOff(void)
     digitalWrite(outputPin, HIGH);
     Serial.println("force power off finished");
 }
-static void CmdGetHandler()
+static void CmdGetHandler(char* para)
 {
     updateState(UPDATE_PERIOD, -1);
 }
-static void CmdHelpHandler()
+static void CmdHelpHandler(char* para)
 {
     UpdateStateToServer(GetAllCmdList());
+}
+static void CmdSetPowerHandler(char* para)
+{
+    uint32_t power = atoi(para + 1);
+    if (power > 20) {
+        Serial.printf("WIFI POWER DB config para [%d] error, current: [%d]\r\n", power, g_powerDB);
+        return;
+    }
+    g_powerDB = power;
+    WiFi.setOutputPower(g_powerDB);
+    Serial.printf("WIFI POWER DB config sucess: [%d], max 20\r\n", g_powerDB);
 }
 /*订阅的主题有消息发布时的回调函数*/
 void MsgCallBack(char *topic, byte *payload, unsigned int length)
 {
+    if (topic == nullptr || payload == nullptr || length == 0){
+        return;
+    }
     Serial.printf("Rev string: topic = %s\r\n", topic);
     Serial.printf("\tmsg : ");
     for (int i = 0; i < length; i++) {
         Serial.print((char)payload[i]); // 打印主题内容
     }
     Serial.println("");
+    delay(10);
 
     // payload 和 alias 相比较，如果匹配，则执行对应的cmdHandler
     for (int i = 0; i < sizeof(cmdList) / sizeof(cmdList[0]); i++) {
-        uint32_t cmdLen = strlen(cmdList[i].cmd.c_str());
-        if (length >= cmdLen && strncmp((char *)payload, cmdList[i].alias.c_str(), cmdLen) == 0) {
-            cmdList[i].cmdHandler();
+        uint32_t cmdLen = strlen(cmdList[i].cmd);
+        if (length >= cmdLen && strncmp((char *)payload, cmdList[i].alias, cmdLen) == 0) {
+            cmdList[i].cmdHandler((char *)&payload[cmdLen]);
         }
     }
 }
@@ -95,8 +111,9 @@ void MsgCallBack(char *topic, byte *payload, unsigned int length)
 // 1:已连接
 int setup_wifi()
 {
-    static int i = -1;
-    static int retry = 0;
+    static uint32_t i = -1;
+    static uint32_t retry = 0; 
+    static uint32_t errCount;
 
     if (WiFi.status() == WL_CONNECTED) {
         return 1;
@@ -104,6 +121,10 @@ int setup_wifi()
     // 10ms 进一次，有 wifiCount 组，当前组，重试500, 5s次。
     if (retry > 500) {
         retry = 0;
+        if (errCount > 5* 12) { // wifi connect timeout in 5min, reset
+            Serial.println("Beginning...");
+            ESP.restart();
+        }
     }
     if (retry == 0) {
         i++;
@@ -111,6 +132,7 @@ int setup_wifi()
             i = 0;
         }
         if (WiFi.status() != WL_CONNECTED) {
+            WiFi.setOutputPower(g_powerDB);
             WiFi.begin(wifiCredentials[i][0], wifiCredentials[i][1]);
             Serial.printf("Connecting to %s\n", wifiCredentials[i][0]);
         } else {
@@ -193,6 +215,9 @@ void keepLive(void)
 {
     static unsigned long lastSendLiveTick;
     unsigned long currentTick;
+    if (MQTTClient.state() != MQTT_CONNECTED) {
+        return;
+    }
     currentTick = millis();
     if (currentTick - lastSendLiveTick >= KEEPALIVEATIME) {
         Serial.println("--Keep alive:");
@@ -236,7 +261,7 @@ bool UpdateStateToServer(String cmd)
 void updateState(UPDATE_MODE_t updateMode, int nowState)
 {
     static int lastStateBak;
-    if (!wifiClient.connected()) {
+    if (MQTTClient.state() != MQTT_CONNECTED) {
         return;
     }
     switch (updateMode) {
