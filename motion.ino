@@ -269,15 +269,15 @@ void updateState(UPDATE_MODE_t updateMode, int nowState)
         nowState = lastStateBak;
     case UPDATE_STATE_CHANGED:
         lastStateBak = nowState;
-        if (nowState == 1) {
+        if (nowState == powerCheckPin_active) {
             UpdateStateToServer("ON");
+            Serial.printf("UpdateStateToServer io = %d, power on\r\n", nowState);
         } else {
             UpdateStateToServer("OFF");
+            Serial.printf("UpdateStateToServer io = %d, power off\r\n", nowState);
         }
         if (updateMode == UPDATE_PERIOD) {
-            Serial.printf("UpdateStateToServer force, now state = %d\r\n", nowState);
-        } else {
-            Serial.printf("UpdateStateToServer power state changed to = %d\r\n", nowState);
+            Serial.printf("-----force\r\n");
         }
         break;
     default:

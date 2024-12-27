@@ -11,8 +11,8 @@
 #include <PubSubClient.h>
 
 
-const int powerCheckPin = 2;  // 默认是高，低有效。input ispower on now
-const int outputPin = 0;  // output 输出开关机、重启的脉冲,接的是笔记本的key，上电是有电，为高，满足上电为高的需求
+const int powerCheckPin = 0;  // 默认是高，低有效。input ispower on now
+const int outputPin = 2;  // output 输出开关机、重启的脉冲,接的是笔记本的key，上电是有电，为高，满足上电为高的需求
 
 //**************************************************//
 // tcp客户端相关初始化，默认即可

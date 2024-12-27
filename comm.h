@@ -18,6 +18,8 @@ typedef enum {
 #define CUSTOM_CMD_HELP              "help"
 #define CUSTOM_CMD_RF_DB              "db"
 
+#define  powerCheckPin_active LOW  // 默认是高，低有效
+
 #define TOPIC_KEEP_ALIVE "alive" 
 #define KEEPALIVEATIME 30 * 1000
 #define WIFI_POWER_DB_DEFALUT   18 // max=20, min=0. 10，在旁边也连不上
