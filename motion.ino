@@ -2,7 +2,8 @@
 
 void updateBin(char* para);
 static void CmdGetHandler();
-static void CmdPowerCtrlHandler(void);
+static void CmdPowerCtrlHandlerOn(void);
+static void CmdPowerCtrlHandlerOff(void);
 static void CmdHelpHandler();
 static void CmdPowerCtrlHandlerForceOff(void);
 
@@ -22,8 +23,8 @@ typedef struct {
 const CmdHandlerList cmdList[] = {
     {"update",      CUSTOM_CMD_UPDATE_FIRMWARE, updateBin},
     {"get",         CUSTOM_CMD_GET, CmdGetHandler},
-    {"on",          CUSTOM_CMD_ON, CmdPowerCtrlHandler},
-    {"off",         CUSTOM_CMD_OFF, CmdPowerCtrlHandler},
+    {"on",          CUSTOM_CMD_ON, CmdPowerCtrlHandlerOn},
+    {"off",         CUSTOM_CMD_OFF, CmdPowerCtrlHandlerOff},
     {"forceoff",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
     {"force_off",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
     {"force off",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
@@ -41,6 +42,7 @@ const String GetAllCmdList(void)
     return cmdListStr;
 }
 const int wifiCount = sizeof(wifiCredentials) / sizeof(wifiCredentials[0]);
+
 /// @brief 短按开关机
 /// @param  
 static void CmdPowerCtrlHandler(char* para)
@@ -50,6 +52,20 @@ static void CmdPowerCtrlHandler(char* para)
     delay(POWER_ON_OFF_DURATION);
     digitalWrite(outputPin, HIGH);
     Serial.println("power on/off finished ");
+}
+POWER_STATE_IO_t g_PowerStateOfAPP = POWER_STATE_IO_UNKONWN;
+static void CmdPowerCtrlHandlerOn(char* para)
+{
+    CmdPowerCtrlHandler(para);
+    g_PowerStateOfAPP = POWER_STATE_IO_ON;
+    LastSyncTickReset(); // 等一会儿再同步
+}
+
+static void CmdPowerCtrlHandlerOff(char* para)
+{
+    CmdPowerCtrlHandler(para);
+    g_PowerStateOfAPP = POWER_STATE_IO_OFF;
+    LastSyncTickReset(); // 等一会儿再同步
 }
 /// @brief 强制关机
 /// @param  
@@ -63,7 +79,7 @@ static void CmdPowerCtrlHandlerForceOff(char* para)
 }
 static void CmdGetHandler(char* para)
 {
-    updateState(UPDATE_PERIOD, -1);
+    updateState(UPDATE_TYPE_SERVICE_READ, (POWER_STATE_IO_t)digitalRead(powerCheckPin));
 }
 static void CmdHelpHandler(char* para)
 {
@@ -89,7 +105,7 @@ void MsgCallBack(char *topic, byte *payload, unsigned int length)
     Serial.printf("Rev string: topic = %s\r\n", topic);
     Serial.printf("\tmsg : ");
     for (int i = 0; i < length; i++) {
-        Serial.print((char)payload[i]); // 打印主题内容
+        Serial.print((char)payload[i]); // 打印消息
     }
     Serial.println("");
     delay(10);
@@ -227,22 +243,34 @@ void keepLive(void)
 }
 const unsigned int debounceDelay = 30;
 unsigned int lastDebounceTime;
-void monitorButton()
+void MonitorPCPower()
 {
-    // read the state of the pushbutton value:
-    static int buttonStateLast = 0;
+    static POWER_STATE_IO_t powerIOStateLast = POWER_STATE_IO_UNKONWN;
     int isChanged = 0;
-    int buttonState = digitalRead(powerCheckPin);
-    if (buttonState != buttonStateLast) {
+    POWER_STATE_IO_t powerIOState = (POWER_STATE_IO_t)digitalRead(powerCheckPin);
+    if (powerIOState != powerIOStateLast) {
         delay(10);
-        buttonState = digitalRead(powerCheckPin);
-        if (buttonState != buttonStateLast) {
-            updateState(UPDATE_STATE_CHANGED, buttonState);
-            buttonStateLast = buttonState;
+        powerIOState = (POWER_STATE_IO_t)digitalRead(powerCheckPin);
+        if (powerIOState != powerIOStateLast) {
+            updateState(UPDATE_TYPE_STATE_CHANGED, powerIOState);
+            powerIOStateLast = powerIOState;
         }
     }
 }
+/// @brief app上按下开关按键后，真实的电源状态，可能并没有改变，比如控制引脚断开。所以需要app 和实际的检测 状态 同步
+void MonitorAppSync()
+{
+    POWER_STATE_IO_t nowState = (POWER_STATE_IO_t)digitalRead(powerCheckPin);
+    if (g_PowerStateOfAPP == nowState) { // 真实的按键状态和app上同步过来的状态一致，不需要更新
+        return;
+    }
+    Serial.printf("app = %s, io = %s\r\n", 
+    g_PowerStateOfAPP == POWER_STATE_IO_ON ? "ON" : "OFF", nowState == (POWER_STATE_IO_t)powerCheckPin_active ? "ON" : "OFF");
 
+    if (updateState(UPDATE_TYPE_UNMATCH_SYNC, nowState)){
+        g_PowerStateOfAPP = nowState;
+    }
+}
 bool UpdateStateToServer(String cmd)
 {
     char topic[64];
@@ -258,29 +286,28 @@ bool UpdateStateToServer(String cmd)
 /// @brief 发送消息到服务器
 /// @param updateMode 周期性更新还是状态改变更新，周期性更新时，用上次的状态，状态改变时，用当前状态
 /// @param nowState 只有在状态改变时才需要传入当前状态，周期性更新时，忽略此参数
-void updateState(UPDATE_MODE_t updateMode, int nowState)
+bool updateState(UPDATE_TYPE_t updateMode, POWER_STATE_IO_t nowState)
 {
-    static int lastStateBak;
     if (MQTTClient.state() != MQTT_CONNECTED) {
-        return;
+        return false;
     }
-    switch (updateMode) {
-    case UPDATE_PERIOD:
-        nowState = lastStateBak;
-    case UPDATE_STATE_CHANGED:
-        lastStateBak = nowState;
-        if (nowState == powerCheckPin_active) {
-            UpdateStateToServer("ON");
-            Serial.printf("UpdateStateToServer io = %d, power on\r\n", nowState);
-        } else {
-            UpdateStateToServer("OFF");
-            Serial.printf("UpdateStateToServer io = %d, power off\r\n", nowState);
-        }
-        if (updateMode == UPDATE_PERIOD) {
-            Serial.printf("-----force\r\n");
-        }
-        break;
-    default:
-        break;
+    if (updateMode == UPDATE_TYPE_FORCE) {
+        Serial.printf("-----force\r\n");
+    } else if (updateMode == UPDATE_TYPE_SERVICE_READ){
+        Serial.printf("-----service read\r\n");
+    } else if (updateMode == UPDATE_TYPE_STATE_CHANGED){
+        Serial.printf("-----state changed\r\n");
+        g_PowerStateOfAPP = nowState;
+    } else if (updateMode == UPDATE_TYPE_UNMATCH_SYNC){
+        Serial.printf("-----app with power state un match, then sync\r\n");
+    }
+    LastUpdateTickReset();
+    LastSyncTickReset(); // 刚刚同步过，等一会儿再同步
+    if (nowState == powerCheckPin_active) {
+        Serial.printf("Update State To Server io = %d, power on\r\n", nowState);
+        return UpdateStateToServer(CUSTOM_CMD_ON);
+    } else {
+        Serial.printf("Update State To Server io = %d, power off\r\n", nowState);
+        return UpdateStateToServer(CUSTOM_CMD_OFF);
     }
 }

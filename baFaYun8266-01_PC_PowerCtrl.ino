@@ -11,8 +11,8 @@
 #include <PubSubClient.h>
 
 
-const int powerCheckPin = 0;  // 默认是高，低有效。input ispower on now
-const int outputPin = 2;  // output 输出开关机、重启的脉冲,接的是笔记本的key，上电是有电，为高，满足上电为高的需求
+const int powerCheckPin = 0;  // 光耦4脚默认上拉为高；当光耦1脚有电导通后，4脚为低。
+const int outputPin = 2;  // output 输出开关机、重启的脉冲,接的光耦2脚。默认为高，光耦不导通。光耦导通后，会使光耦4脚 ，即笔记本开关机按键，产生低电平。
 
 //**************************************************//
 // tcp客户端相关初始化，默认即可
@@ -69,10 +69,30 @@ void setup()
     MQTTClient.setCallback(MsgCallBack);
 }
 
+volatile unsigned long g_lastUpdateTick;
+void LastUpdateTickReset()
+{
+    g_lastUpdateTick = millis();
+}
+
+volatile unsigned long g_lastSyncTick;  // app 和实际的检测 状态 同步
+// 当app改变了状态，或者检测到状态变化。重新计算同步时间
+void LastSyncTickReset()
+{
+    g_lastSyncTick = millis();
+}
+
+unsigned long AbsSub(unsigned long a, unsigned long b) {
+    if (a >= b) {
+        return a - b;
+    } else {
+        return b - a;
+    }
+}
+
 // 循环
 void loop()
 {
-    static unsigned long lastUpdateTick;
     static unsigned long lastPrintTick;
     unsigned long currentTick = millis();
     bool isFirstConnect = false;
@@ -85,11 +105,14 @@ void loop()
         }
         if (MQTTClient.state() == MQTT_CONNECTED) {
             MQTTClient.loop();
-            monitorButton();
+            MonitorPCPower();
 
-            if (isFirstConnect || (currentTick - lastUpdateTick >= 60 * 1000)) {
-                lastUpdateTick = currentTick;
-                updateState(UPDATE_PERIOD, -1);
+            if (AbsSub(currentTick, g_lastSyncTick) >= 1500) {
+                MonitorAppSync();
+            }
+
+            if (isFirstConnect || (AbsSub(currentTick, g_lastUpdateTick) >= UPDATE_FORCE_PERIOD_S * 1000)) {
+                updateState(UPDATE_TYPE_FORCE, (POWER_STATE_IO_t)digitalRead(powerCheckPin));
             }
             keepLive();
         }
