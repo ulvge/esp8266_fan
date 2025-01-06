@@ -60,6 +60,7 @@ void setup()
     Serial.begin(115200);
     Serial.println("");
     Serial.println("");
+    delay(3000);
     printHardwareInfo();
     ESP.wdtEnable(WDTO_8S);
     ESP.wdtFeed();
