@@ -1,4 +1,6 @@
 #include "comm.h"
+#include <Ticker.h>
+#include <functional>  // 用于 std::bind
 
 void updateBin(char* para);
 static void CmdGetHandler();
@@ -6,6 +8,8 @@ static void CmdPowerCtrlHandlerOn(void);
 static void CmdPowerCtrlHandlerOff(void);
 static void CmdHelpHandler();
 static void CmdPowerCtrlHandlerForceOff(void);
+static void CmdPowerCtrlHandlerDirIn(char *para);
+static void CmdPowerCtrlHandlerDirOut(char *para);
 
 // 定义Wi-Fi账号和密码
 const char *wifiCredentials[][2] = {
@@ -25,10 +29,8 @@ const CmdHandlerList cmdList[] = {
     {"get",         CUSTOM_CMD_GET, CmdGetHandler},
     {"on",          CUSTOM_CMD_ON, CmdPowerCtrlHandlerOn},
     {"off",         CUSTOM_CMD_OFF, CmdPowerCtrlHandlerOff},
-    {"forceoff",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
-    {"force_off",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
-    {"force off",    CUSTOM_CMD_FORCE_POWEROFF, CmdPowerCtrlHandlerForceOff},
-    {"db",        CUSTOM_CMD_RF_DB, CmdSetPowerHandler},
+    {"in",          CUSTOM_CMD_DIR_IN, CmdPowerCtrlHandlerDirIn},
+    {"out",          CUSTOM_CMD_DIR_OUT, CmdPowerCtrlHandlerDirOut},
     {"help",        CUSTOM_CMD_HELP, CmdHelpHandler},
     {"?",           CUSTOM_CMD_HELP, CmdHelpHandler}
 };
@@ -43,58 +45,61 @@ const String GetAllCmdList(void)
 }
 const int wifiCount = sizeof(wifiCredentials) / sizeof(wifiCredentials[0]);
 
-/// @brief 短按开关机
-/// @param  
-static void CmdPowerCtrlHandler(char* para)
-{
-    Serial.println("power on/off prepare....");
-    digitalWrite(outputPin, LOW);
-    delay(POWER_ON_OFF_DURATION);
-    digitalWrite(outputPin, HIGH);
-    Serial.println("power on/off finished ");
-}
 POWER_STATE_IO_t g_PowerStateOfAPP = POWER_STATE_IO_UNKONWN;
 static void CmdPowerCtrlHandlerOn(char* para)
 {
-    CmdPowerCtrlHandler(para);
-    g_PowerStateOfAPP = POWER_STATE_IO_ON;
-    LastSyncTickReset(); // 等一会儿再同步
+    CmdPowerCtrlHandlerDirIn(para);
 }
 
 static void CmdPowerCtrlHandlerOff(char* para)
 {
-    CmdPowerCtrlHandler(para);
-    g_PowerStateOfAPP = POWER_STATE_IO_OFF;
+    Serial.println("power off");
+    GPIO_setPinStatus(PinFANEnable, DISABLE);
+    g_PowerStateOfAPP = (POWER_STATE_IO_t)DISABLE;
     LastSyncTickReset(); // 等一会儿再同步
 }
-/// @brief 强制关机
-/// @param  
-static void CmdPowerCtrlHandlerForceOff(char* para)
+Ticker timer_DirIn, timer_DirOut; // 定义两个定时器
+
+static void timerCallback_DirIn(){
+    GPIO_setPinStatus(PinFANDirctionOut, ENABLE);
+    delay(500);    // 继电器响应时间
+    GPIO_setPinStatus(PinFANEnable, ENABLE);
+    g_PowerStateOfAPP = (POWER_STATE_IO_t)ENABLE;
+    LastSyncTickReset(); // 等一会儿再同步
+    Serial.println("power on, dir in");
+    timer_DirIn.detach(); 
+}
+static void timerCallback_DirOut(){
+    GPIO_setPinStatus(PinFANDirctionOut, DISABLE);
+    delay(500);    // 继电器响应时间
+    GPIO_setPinStatus(PinFANEnable, ENABLE);
+    g_PowerStateOfAPP = (POWER_STATE_IO_t)ENABLE;
+    LastSyncTickReset(); // 等一会儿再同步
+    
+    Serial.println("power on, dir out");
+    timer_DirOut.detach();
+}
+
+static void CmdPowerCtrlHandlerDirIn(char* para)
 {
-    Serial.println("force power off prepare....");
-    digitalWrite(outputPin, LOW);
-    delay(POWER_OFF_FROCE_DURATION);
-    digitalWrite(outputPin, HIGH);
-    Serial.println("force power off finished");
+    CmdPowerCtrlHandlerOff(para);
+
+    timer_DirIn.once(POWER_OFF_STABLE, std::bind(timerCallback_DirIn));
+}
+
+static void CmdPowerCtrlHandlerDirOut(char* para)
+{
+    CmdPowerCtrlHandlerOff(para);
+
+    timer_DirIn.once(POWER_OFF_STABLE, std::bind(timerCallback_DirOut)); 
 }
 static void CmdGetHandler(char* para)
 {
-    updateState(UPDATE_TYPE_SERVICE_READ, (POWER_STATE_IO_t)digitalRead(powerCheckPin));
+    updateState(UPDATE_TYPE_SERVICE_READ);
 }
 static void CmdHelpHandler(char* para)
 {
     UpdateStateToServer(GetAllCmdList());
-}
-static void CmdSetPowerHandler(char* para)
-{
-    uint32_t power = atoi(para + 1);
-    if (power > 20) {
-        Serial.printf("WIFI POWER DB config para [%d] error, current: [%d]\r\n", power, g_powerDB);
-        return;
-    }
-    g_powerDB = power;
-    WiFi.setOutputPower(g_powerDB);
-    Serial.printf("WIFI POWER DB config sucess: [%d], max 20\r\n", g_powerDB);
 }
 /*订阅的主题有消息发布时的回调函数*/
 void MsgCallBack(char *topic, byte *payload, unsigned int length)
@@ -178,7 +183,7 @@ bool MQTT_reconnect()
         // 尝试去连接
         if (MQTTClient.connect(UID)) {
             Serial.println("MQTT connected");   // 连接成功
-            MQTTClient.subscribe(TOPIC_PCPowerCtrl); // 订阅主题
+            MQTTClient.subscribe(TOPIC_CTRL); // 订阅主题
             return true;
         } else {
             Serial.print("failed, rc="); // 连接失败，输出状态，五秒后重试
@@ -243,34 +248,34 @@ void keepLive(void)
 }
 const unsigned int debounceDelay = 30;
 unsigned int lastDebounceTime;
-void MonitorPCPower()
-{
-    static POWER_STATE_IO_t powerIOStateLast = POWER_STATE_IO_UNKONWN;
-    int isChanged = 0;
-    POWER_STATE_IO_t powerIOState = (POWER_STATE_IO_t)digitalRead(powerCheckPin);
-    if (powerIOState != powerIOStateLast) {
-        delay(10);
-        powerIOState = (POWER_STATE_IO_t)digitalRead(powerCheckPin);
-        if (powerIOState != powerIOStateLast) {
-            updateState(UPDATE_TYPE_STATE_CHANGED, powerIOState);
-            powerIOStateLast = powerIOState;
-        }
-    }
-}
-/// @brief app上按下开关按键后，真实的电源状态，可能并没有改变，比如控制引脚断开。所以需要app 和实际的检测 状态 同步
-void MonitorAppSync()
-{
-    POWER_STATE_IO_t nowState = (POWER_STATE_IO_t)digitalRead(powerCheckPin);
-    if (g_PowerStateOfAPP == nowState) { // 真实的按键状态和app上同步过来的状态一致，不需要更新
-        return;
-    }
-    Serial.printf("app = %s, io = %s\r\n", 
-    g_PowerStateOfAPP == POWER_STATE_IO_ON ? "ON" : "OFF", nowState == (POWER_STATE_IO_t)powerCheckPin_active ? "ON" : "OFF");
+// void MonitorPCPower()
+// {
+//     static POWER_STATE_IO_t powerIOStateLast = POWER_STATE_IO_UNKONWN;
+//     int isChanged = 0;
+//     bool powerIOState = GPIO_isPinActive(PinFANEnable);
+//     if ((POWER_STATE_IO_t)powerIOState != powerIOStateLast) {
+//         delay(10);
+//         powerIOState = GPIO_isPinActive(PinFANEnable);
+//         if (powerIOState != powerIOStateLast) {
+//             updateState(UPDATE_TYPE_STATE_CHANGED);
+//             powerIOStateLast = (POWER_STATE_IO_t)powerIOState;
+//         }
+//     }
+// }
 
-    if (updateState(UPDATE_TYPE_UNMATCH_SYNC, nowState)){
-        g_PowerStateOfAPP = nowState;
-    }
-}
+/// @brief app上按下开关按键后，真实的电源状态，可能并没有改变，比如控制引脚断开。所以需要app 和实际的检测 状态 同步
+// void MonitorAppSync()
+// {
+//     bool nowState = GPIO_isPinActive(PinFANEnable);
+//     if (g_PowerStateOfAPP == (POWER_STATE_IO_t)nowState) { // 真实的按键状态和app上同步过来的状态一致，不需要更新
+//         return;
+//     }
+//     Serial.printf("app = %s, io = %s\r\n", g_PowerStateOfAPP ? "ON" : "OFF", nowState ? "ON" : "OFF");
+
+//     if (updateState(UPDATE_TYPE_UNMATCH_SYNC)){
+//         g_PowerStateOfAPP = (POWER_STATE_IO_t)nowState;
+//     }
+// }
 bool UpdateStateToServer(String cmd)
 {
     char topic[64];
@@ -279,14 +284,14 @@ bool UpdateStateToServer(String cmd)
     }
     // 推送消息时：主题名后加/set推送消息，表示向所有订阅这个主题的设备们推送消息，假如推送者自己也订阅了这个主题，
     // 消息不会被推送给它自己，以防止自己推送的消息被自己接收。 例如向主题 light002推送数据，可为 light002/set。
-    snprintf(topic, sizeof(topic), "%s/set", TOPIC_PCPowerCtrl);
+    snprintf(topic, sizeof(topic), "%s/set", TOPIC_CTRL);
     MQTTClient.publish(topic, cmd.c_str());
     return true;
 }
 /// @brief 发送消息到服务器
 /// @param updateMode 周期性更新还是状态改变更新，周期性更新时，用上次的状态，状态改变时，用当前状态
 /// @param nowState 只有在状态改变时才需要传入当前状态，周期性更新时，忽略此参数
-bool updateState(UPDATE_TYPE_t updateMode, POWER_STATE_IO_t nowState)
+bool updateState(UPDATE_TYPE_t updateMode)
 {
     if (MQTTClient.state() != MQTT_CONNECTED) {
         return false;
@@ -295,19 +300,107 @@ bool updateState(UPDATE_TYPE_t updateMode, POWER_STATE_IO_t nowState)
         Serial.printf("-----force\r\n");
     } else if (updateMode == UPDATE_TYPE_SERVICE_READ){
         Serial.printf("-----service read\r\n");
-    } else if (updateMode == UPDATE_TYPE_STATE_CHANGED){
-        Serial.printf("-----state changed\r\n");
-        g_PowerStateOfAPP = nowState;
+    } else if (updateMode == UPDATE_PRESSED){
+        Serial.printf("-----key pressed\r\n");
     } else if (updateMode == UPDATE_TYPE_UNMATCH_SYNC){
         Serial.printf("-----app with power state un match, then sync\r\n");
     }
     LastUpdateTickReset();
     LastSyncTickReset(); // 刚刚同步过，等一会儿再同步
-    if (nowState == powerCheckPin_active) {
-        Serial.printf("Update State To Server io = %d, power on\r\n", nowState);
+    
+    bool isActive = GPIO_isPinActive(PinFANEnable);
+    if (isActive) {
+        Serial.printf("Update State To Server , power on\r\n");
         return UpdateStateToServer(CUSTOM_CMD_ON);
     } else {
-        Serial.printf("Update State To Server io = %d, power off\r\n", nowState);
+        Serial.printf("Update State To Server , power off\r\n");
         return UpdateStateToServer(CUSTOM_CMD_OFF);
     }
+}
+typedef struct {
+    bool isIOActiveLast; //  上次IO状态，是否激活
+
+    unsigned int tickPressed; // 按下的时间
+    unsigned int tickRelesed; // 释放的时间
+
+    unsigned int pressedCount; // 按键按下的次数
+} Button_ST;
+
+static Button_ST button;
+#define debounceDelay  30
+#define buttonPressLastTime_ms 3000 // 按键释放后， 超过这个值，才开始真正启作用
+int ScanButton()
+{
+    int res = 0;  // 按键次数
+    unsigned int currentTimeTick = millis();
+
+    bool stateIOCurrent = GPIO_isPinActive(PinButton); // 当前状态
+    // 消抖逻辑：状态变化时开始计时
+    if (stateIOCurrent != button.isIOActiveLast) {
+        if (stateIOCurrent == true) {
+            button.tickPressed = currentTimeTick;
+        }else{
+            button.tickRelesed = currentTimeTick;
+        }
+    }
+    // 按键释放
+    if (button.isIOActiveLast == true && stateIOCurrent == false) {
+        if ((currentTimeTick - button.tickPressed) >= debounceDelay) { // 满足去抖条件
+            button.pressedCount++; // 按键按下次数
+            return 0; // 只计数，不处理
+        }else{
+            return 0; // 去抖中
+        }
+        
+        button.isIOActiveLast = stateIOCurrent; // update
+    }
+    // 如果长时间没有按，则返回按键总次数。
+    if ((currentTimeTick - button.tickRelesed) >= buttonPressLastTime_ms) {
+        res = button.pressedCount;
+        Serial.printf("Button pressed count is %d\n", button.pressedCount);
+
+        button.pressedCount = 0; // 清零
+        return res;
+    }
+    
+    return 0;
+}
+
+/*
+关机状态
+	1正
+	2反
+开机状态
+	1关
+	2换方向
+
+    当前状态    按下次数    操作
+    关机状态    1           开机
+    关机状态    2           换方向
+    开机状态    1           关机
+    开机状态    2           换方向
+*/
+void monitorButton()
+{
+    int buttonPressedCount = ScanButton();
+    if (buttonPressedCount == 0) {
+        return;
+    }
+    
+    bool fanEnable = GPIO_isPinActive(PinFANEnable);
+    bool fanDirOut = GPIO_isPinActive(PinFANDirctionOut);
+    if (buttonPressedCount == ButtonAction_POWER) {
+        if (fanEnable == ENABLE) {
+            CmdPowerCtrlHandlerOff(NULL);
+        }else{
+            CmdPowerCtrlHandlerOn(NULL);
+        }
+    }else if (buttonPressedCount == ButtonAction_DIR) {
+        if (fanDirOut == ENABLE) {
+            CmdPowerCtrlHandlerDirIn(NULL);
+        }else{
+            CmdPowerCtrlHandlerDirOut(NULL);
+        }
+    }
+    updateState(UPDATE_PRESSED);
 }

@@ -11,9 +11,6 @@
 #include <PubSubClient.h>
 
 
-const int powerCheckPin = 0;  // 光耦4脚默认上拉为高；当光耦1脚有电导通后，4脚为低。
-const int outputPin = 2;  // output 输出开关机、重启的脉冲,接的光耦2脚。默认为高，光耦不导通。光耦导通后，会使光耦4脚 ，即笔记本开关机按键，产生低电平。
-
 //**************************************************//
 // tcp客户端相关初始化，默认即可
 WiFiClient wifiClient;
@@ -52,19 +49,16 @@ void printHardwareInfo()
 // 初始化，相当于main 函数
 void setup()
 {
-    pinMode(powerCheckPin, INPUT);
-    digitalWrite(outputPin, HIGH);
-    pinMode(outputPin, OUTPUT);
-    digitalWrite(outputPin, HIGH);
+    GPIO_bspInit();
 
     Serial.begin(115200);
     Serial.println("");
     Serial.println("");
-    delay(3000);
+    delay(1000);
     printHardwareInfo();
     ESP.wdtEnable(WDTO_8S);
     ESP.wdtFeed();
-    delay(2000);
+    delay(500);
     Serial.println("Beginning...");
     MQTTClient.setServer(server_ip, server_port);
     MQTTClient.setCallback(MsgCallBack);
@@ -106,14 +100,19 @@ void loop()
         }
         if (MQTTClient.state() == MQTT_CONNECTED) {
             MQTTClient.loop();
-            MonitorPCPower();
+            //MonitorPCPower();
 
             if (AbsSub(currentTick, g_lastSyncTick) >= 1500) {
-                MonitorAppSync();
+                //MonitorAppSync();
             }
 
             if (isFirstConnect || (AbsSub(currentTick, g_lastUpdateTick) >= UPDATE_FORCE_PERIOD_S * 1000)) {
-                updateState(UPDATE_TYPE_FORCE, (POWER_STATE_IO_t)digitalRead(powerCheckPin));
+                if (GPIO_isPinActive(PinFANEnable)){
+                    CmdPowerCtrlHandlerOff(NULL);
+                    updateState(UPDATE_TYPE_AUTO_POWEROFF);
+                }else{
+                    updateState(UPDATE_TYPE_FORCE);
+                }
             }
             keepLive();
         }
@@ -123,5 +122,6 @@ void loop()
         Serial.print(".");
     }
     ESP.wdtFeed();
+    monitorButton();
     delay(20);
 }
