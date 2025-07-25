@@ -48,7 +48,26 @@ const int wifiCount = sizeof(wifiCredentials) / sizeof(wifiCredentials[0]);
 POWER_STATE_IO_t g_PowerStateOfAPP = POWER_STATE_IO_UNKONWN;
 static void CmdPowerCtrlHandlerOn(char* para)
 {
-    CmdPowerCtrlHandlerDirIn(para);
+    if (para == NULL){
+        CmdPowerCtrlHandlerDirIn(NULL); // 本地按键
+    }
+    else{ // 对服务器下发的命令，进行解析。例如：#3#0，#3#1.    on#3#0
+        uint8_t cmdType;
+        uint8_t fanDirOut;
+        if (sscanf(para + 1, "%d#%d", &cmdType, &fanDirOut) == 2) {
+            if (cmdType != 3) {
+                printf("解析失败, cmdType is %d ,!= 3\n", cmdType);
+                return;
+            }
+            if (fanDirOut == ENABLE) {
+                CmdPowerCtrlHandlerDirOut(NULL);
+            }else{
+                CmdPowerCtrlHandlerDirIn(NULL);
+            }
+        } else {
+            printf("解析失败\n");
+        }
+    }
 }
 
 static void CmdPowerCtrlHandlerOff(char* para)
@@ -68,6 +87,8 @@ static void timerCallback_DirIn(){
     LastSyncTickReset(); // 等一会儿再同步
     Serial.println("power on, dir in");
     timer_DirIn.detach(); 
+    
+    updateState(UPDATE_PRESSED);
 }
 static void timerCallback_DirOut(){
     GPIO_setPinStatus(PinFANDirctionOut, DISABLE);
@@ -78,6 +99,7 @@ static void timerCallback_DirOut(){
     
     Serial.println("power on, dir out");
     timer_DirOut.detach();
+    updateState(UPDATE_PRESSED);
 }
 
 static void CmdPowerCtrlHandlerDirIn(char* para)
@@ -102,14 +124,14 @@ static void CmdHelpHandler(char* para)
     UpdateStateToServer(GetAllCmdList());
 }
 /*订阅的主题有消息发布时的回调函数*/
-void MsgCallBack(char *topic, byte *payload, unsigned int length)
+void MsgCallBack(char *topic, byte *payload, unsigned int payloadLen)
 {
-    if (topic == nullptr || payload == nullptr || length == 0){
+    if (topic == nullptr || payload == nullptr || payloadLen == 0){
         return;
     }
     Serial.printf("Rev string: topic = %s\r\n", topic);
     Serial.printf("\tmsg : ");
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < payloadLen; i++) {
         Serial.print((char)payload[i]); // 打印消息
     }
     Serial.println("");
@@ -118,7 +140,7 @@ void MsgCallBack(char *topic, byte *payload, unsigned int length)
     // payload 和 alias 相比较，如果匹配，则执行对应的cmdHandler
     for (int i = 0; i < sizeof(cmdList) / sizeof(cmdList[0]); i++) {
         uint32_t cmdLen = strlen(cmdList[i].cmd);
-        if (length >= cmdLen && strncmp((char *)payload, cmdList[i].alias, cmdLen) == 0) {
+        if (payloadLen >= cmdLen && strncmp((char *)payload, cmdList[i].alias, cmdLen) == 0) {
             cmdList[i].cmdHandler((char *)&payload[cmdLen]);
         }
     }
@@ -308,10 +330,16 @@ bool updateState(UPDATE_TYPE_t updateMode)
     LastUpdateTickReset();
     LastSyncTickReset(); // 刚刚同步过，等一会儿再同步
     
-    bool isActive = GPIO_isPinActive(PinFANEnable);
-    if (isActive) {
+    
+    bool fanDirOut = GPIO_isPinActive(PinFANDirctionOut);
+    bool fanEnable = GPIO_isPinActive(PinFANEnable);
+    if (fanEnable) {
         Serial.printf("Update State To Server , power on\r\n");
-        return UpdateStateToServer(CUSTOM_CMD_ON);
+        if (fanDirOut){
+            return UpdateStateToServer(String(CUSTOM_CMD_ON)+"3#0");
+        }else{
+            return UpdateStateToServer(String(CUSTOM_CMD_ON)+"3#1");
+        }
     } else {
         Serial.printf("Update State To Server , power off\r\n");
         return UpdateStateToServer(CUSTOM_CMD_OFF);
@@ -392,6 +420,7 @@ void monitorButton()
     if (buttonPressedCount == ButtonAction_POWER) {
         if (fanEnable == ENABLE) {
             CmdPowerCtrlHandlerOff(NULL);
+            updateState(UPDATE_PRESSED);
         }else{
             CmdPowerCtrlHandlerOn(NULL);
         }
@@ -402,5 +431,4 @@ void monitorButton()
             CmdPowerCtrlHandlerDirOut(NULL);
         }
     }
-    updateState(UPDATE_PRESSED);
 }

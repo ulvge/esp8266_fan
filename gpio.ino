@@ -20,7 +20,7 @@
 const static GPIOConfig g_gpioConfigComm[] = {
     {PinButton, "button",   INPUT, 0},
     {PinFANEnable, "FANEnable",   OUTPUT, 0},
-    {PinFANDirctionOut, "FANDirctionOut",   OUTPUT, 0}, // 0: 吸气 1: 排气
+    {PinFANDirctionOut, "FANDirctionOut",   OUTPUT, 0}, // 0: 吸气，常闭； 1: 排气 常开
 };
 static const GPIOConfig *GPIO_findGpio(GPIO_enum alias);
 void GPIO_bspInit(void)
