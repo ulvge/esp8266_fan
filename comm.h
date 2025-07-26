@@ -23,9 +23,10 @@ typedef enum {
     UPDATE_TYPE_SERVICE_READ = 3, // 服务器查询时更新
     UPDATE_TYPE_UNMATCH_SYNC = 4, // app和实际状态不匹配时的同步
     UPDATE_TYPE_AUTO_POWEROFF = 5, // 超时，自动关机
+    UPDATE_TYPE_SERVICE_CMD = 6, // 服务器下发的命令
 } UPDATE_TYPE_t;
 
-#define POWER_OFF_STABLE 1000    // 关机后延时，等完全停止后，再开机
+#define POWER_OFF_STABLE_MS 5000    // 关机后延时，等完全停止后，再开机
 
 #define CUSTOM_CMD_UPDATE_FIRMWARE  "update"
 #define CUSTOM_CMD_GET              "get"
