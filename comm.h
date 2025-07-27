@@ -6,9 +6,9 @@
 typedef enum {DISABLE = 0, ENABLE = !DISABLE} EventStatus, ControlStatus;
 
 typedef enum {
-    PinButton = 0,
-    PinFANEnable = 2,
-    PinFANDirctionOut = 3, 
+    PinFANDirctionOut = 0,
+    PinButton = 2,
+    PinFANEnable = 3, //Rx
     Pin_MAX
 } GPIO_enum;
 
@@ -26,7 +26,8 @@ typedef enum {
     UPDATE_TYPE_SERVICE_CMD = 6, // 服务器下发的命令
 } UPDATE_TYPE_t;
 
-#define POWER_OFF_STABLE_MS 5000    // 关机后延时，等完全停止后，再开机
+#define POWER_OFF_STABLE_MS 5000    // 关机后延时，等叶片完全停止后，再开机
+#define POWER_OFF_REALY_MS 1000    // 等继电器，完全关闭
 
 #define CUSTOM_CMD_UPDATE_FIRMWARE  "update"
 #define CUSTOM_CMD_GET              "get"

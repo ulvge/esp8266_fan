@@ -49,12 +49,11 @@ void printHardwareInfo()
 // 初始化，相当于main 函数
 void setup()
 {
-    GPIO_bspInit();
-
     Serial.begin(115200);
     Serial.println("");
     Serial.println("");
-    delay(1000);
+    GPIO_bspInit();
+    delay(100);
     printHardwareInfo();
     ESP.wdtEnable(WDTO_8S);
     ESP.wdtFeed();
@@ -107,7 +106,7 @@ void loop()
             }
 
             if (isFirstConnect || (AbsSub(currentTick, g_lastUpdateTick) >= UPDATE_FORCE_PERIOD_S * 1000)) {
-                if (GPIO_isPinActive(PinFANEnable)){
+                if (GPIO_isPinActive(PinFANEnable)){ // 开机一段时间后，自动关闭
                     CmdPowerCtrlHandlerOff(NULL);
                     updateState(UPDATE_TYPE_AUTO_POWEROFF);
                 }else{

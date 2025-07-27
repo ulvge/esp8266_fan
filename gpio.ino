@@ -18,17 +18,18 @@
 } GPIOConfig;
 
 const static GPIOConfig g_gpioConfigComm[] = {
+    {PinFANDirctionOut, "FANDirctionOut",   OUTPUT, 0}, // 0: 吸气，常闭； 1: 排气 常开
     {PinButton, "button",   INPUT, 0},
     {PinFANEnable, "FANEnable",   OUTPUT, 0},
-    {PinFANDirctionOut, "FANDirctionOut",   OUTPUT, 0}, // 0: 吸气，常闭； 1: 排气 常开
 };
 static const GPIOConfig *GPIO_findGpio(GPIO_enum alias);
 void GPIO_bspInit(void)
 {
     for (uint8_t i = 0; i < ARRARY_SIZE(g_gpioConfigComm); i++)
     {
-        if (g_gpioConfigComm[i].pinDir == INPUT) {
-            pinMode(g_gpioConfigComm[i].alias, INPUT);
+        if (g_gpioConfigComm[i].pinDir == INPUT || g_gpioConfigComm[i].pinDir == INPUT_PULLUP || 
+            g_gpioConfigComm[i].pinDir == INPUT_PULLDOWN_16) {
+            pinMode(g_gpioConfigComm[i].alias, g_gpioConfigComm[i].pinDir);
         }else{
             GPIO_setPinStatus(g_gpioConfigComm[i].alias, DISABLE);
         }
@@ -100,6 +101,8 @@ bool GPIO_setPinStatus(GPIO_enum alias, ControlStatus isActive)
     }
 
     pinMode(alias, OUTPUT);
+    Serial.printf("init gpio ,set pin %d output, active mode is %d, isActive is %d\r\n", 
+        alias, p_gpioCfg->activeMode, isActive);
     if (p_gpioCfg->activeMode)
     {
         if (isActive == ENABLE)

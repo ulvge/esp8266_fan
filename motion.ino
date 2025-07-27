@@ -7,7 +7,6 @@ static void CmdGetHandler();
 static void CmdPowerCtrlHandlerOn(void);
 static void CmdPowerCtrlHandlerOff(void);
 static void CmdHelpHandler();
-static void CmdPowerCtrlHandlerForceOff(void);
 static void CmdPowerCtrlHandlerDirIn(char *para);
 static void CmdPowerCtrlHandlerDirOut(char *para);
 
@@ -48,8 +47,11 @@ const int wifiCount = sizeof(wifiCredentials) / sizeof(wifiCredentials[0]);
 POWER_STATE_IO_t g_PowerStateOfAPP = POWER_STATE_IO_UNKONWN;
 static void CmdPowerCtrlHandlerOn(char* para)
 {
-    if (para == NULL){
+    if (para == NULL) { // 按键 
         CmdPowerCtrlHandlerDirIn(NULL); // 本地按键
+    }
+    else if (strchr(para, '#') == NULL) { // 服务器下发的，纯开机命令，：原始信息:#on\r\n，但此处只有\r\n
+        CmdPowerCtrlHandlerDirIn(para); // 本地按键
     }
     else{ // 对服务器下发的命令，进行解析。例如：#3#0，#3#1.    on#3#0
         uint8_t cmdType;
@@ -58,7 +60,7 @@ static void CmdPowerCtrlHandlerOn(char* para)
         if (sscanf(para + 1, "%d#%d", &temp1, &temp2) == 2) {
             cmdType = (uint8_t)temp1;
             fanDirOut = (uint8_t)temp2;
-            if (cmdType != 3) {
+            if (cmdType > 5) { // 用的是风速的字段，最高5级。只要是大于5的，都认为是无效的
                 Serial.printf("para error, cmdType = %d ,!= 3\r\n", cmdType);
                 return;
             }else{
@@ -80,7 +82,11 @@ static void CmdPowerCtrlHandlerOff(char* para)
     Serial.println("power off");
     GPIO_setPinStatus(PinFANEnable, DISABLE);
     g_PowerStateOfAPP = (POWER_STATE_IO_t)DISABLE;
+    delay(POWER_OFF_REALY_MS);    // 继电器完全断电
     LastSyncTickReset(); // 等一会儿再同步
+    if ((para == NULL) || (strstr(para, CUSTOM_CMD_OFF) != NULL)) { // 按键 || 服务器下发的是纯off，而不是关机后开机
+        GPIO_setPinStatus(PinFANDirctionOut, DISABLE);
+    }
 }
 Ticker timer_DirIn, timer_DirOut; // 定义两个定时器
 
@@ -110,7 +116,6 @@ static void timerCallback_DirOut(bool isKeyPressed){
 static void CmdPowerCtrlHandlerDirIn(char* para)
 {
     CmdPowerCtrlHandlerOff(para);
-    delay(500);    // 继电器完全断电
     GPIO_setPinStatus(PinFANDirctionOut, DISABLE);
 
     timer_DirIn.once_ms(POWER_OFF_STABLE_MS, timerCallback_DirIn, para == NULL);
@@ -119,7 +124,6 @@ static void CmdPowerCtrlHandlerDirIn(char* para)
 static void CmdPowerCtrlHandlerDirOut(char* para)
 {
     CmdPowerCtrlHandlerOff(para);
-    delay(500);    // 继电器完全断电
     GPIO_setPinStatus(PinFANDirctionOut, ENABLE);
     delay(500);    // 继电器响应时间
 
@@ -151,7 +155,7 @@ void MsgCallBack(char *topic, byte *payload, unsigned int payloadLen)
     for (int i = 0; i < sizeof(cmdList) / sizeof(cmdList[0]); i++) {
         uint32_t cmdLen = strlen(cmdList[i].cmd);
         if (payloadLen >= cmdLen && strncmp((char *)payload, cmdList[i].alias, cmdLen) == 0) {
-            payload[payloadLen + 1] = '\0'; //防止cmdHandler越界
+            payload[payloadLen] = '\0'; //防止cmdHandler越界
             cmdList[i].cmdHandler((char *)&payload[cmdLen]);//假如是on#3#0，则payload[cmdLen] = #3#0
         }
     }
