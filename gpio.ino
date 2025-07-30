@@ -19,7 +19,7 @@
 
 const static GPIOConfig g_gpioConfigComm[] = {
     {PinFANDirctionOut, "FANDirctionOut",   OUTPUT, 0}, // 0: 吸气，常闭； 1: 排气 常开
-    {PinButton, "button",   INPUT, 0},
+    {PinButton, "button",   INPUT_PULLUP, 0},
     {PinFANEnable, "FANEnable",   OUTPUT, 0},
 };
 static const GPIOConfig *GPIO_findGpio(GPIO_enum alias);

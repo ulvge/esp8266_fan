@@ -79,7 +79,7 @@ static void CmdPowerCtrlHandlerOn(char* para)
 
 static void CmdPowerCtrlHandlerOff(char* para)
 {
-    Serial.println("power off");
+    Serial.print("power off the fan");
     GPIO_setPinStatus(PinFANEnable, DISABLE);
     g_PowerStateOfAPP = (POWER_STATE_IO_t)DISABLE;
     delay(POWER_OFF_REALY_MS);    // 继电器完全断电
@@ -385,16 +385,19 @@ int ScanButton()
         }else{
             button.tickRelesed = currentTimeTick;
         }
+        //Serial.printf("Button channged, current active: %d\n", stateIOCurrent);
     }
     // 按键释放
     if (button.isIOActiveLast == true && stateIOCurrent == false) {
+        button.isIOActiveLast = stateIOCurrent; // update
         if ((currentTimeTick - button.tickPressed) >= debounceDelay) { // 满足去抖条件
             button.pressedCount++; // 按键按下次数
+            Serial.printf("Button pressed count: %d\n", button.pressedCount);
             return 0; // 只计数，不处理
         }else{
             return 0; // 去抖中
         }
-        
+    }else{
         button.isIOActiveLast = stateIOCurrent; // update
     }
     // 如果长时间没有按，则返回按键总次数。
@@ -439,11 +442,13 @@ void monitorButton()
         }else{
             CmdPowerCtrlHandlerOn(NULL);
         }
-    }else if (buttonPressedCount == ButtonAction_DIR) {
+    }else if (buttonPressedCount >= ButtonAction_DIR) {
         if (fanDirOut == ENABLE) {
             CmdPowerCtrlHandlerDirIn(NULL);
+            Serial.println(" for safe"); // 接着"power off the fan"
         }else{
             CmdPowerCtrlHandlerDirOut(NULL);
+            Serial.println(" for safe"); // 接着"power off the fan"
         }
     }
 }
