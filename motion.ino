@@ -3,10 +3,10 @@
 #include <functional>  // 用于 std::bind
 
 void updateBin(char* para);
-static void CmdGetHandler();
-static void CmdPowerCtrlHandlerOn(void);
-static void CmdPowerCtrlHandlerOff(void);
-static void CmdHelpHandler();
+static void CmdGetHandler(char *para);
+static void CmdPowerCtrlHandlerOn(char *para);
+static void CmdPowerCtrlHandlerOff(char *para);
+static void CmdHelpHandler(char *para);
 static void CmdPowerCtrlHandlerDirIn(char *para);
 static void CmdPowerCtrlHandlerDirOut(char *para);
 
@@ -45,13 +45,10 @@ const String GetAllCmdList(void)
 const int wifiCount = sizeof(wifiCredentials) / sizeof(wifiCredentials[0]);
 
 POWER_STATE_IO_t g_PowerStateOfAPP = POWER_STATE_IO_UNKONWN;
-static void CmdPowerCtrlHandlerOn(char* para)
+static void PowerCtrlHandlerOn(UPDATE_TYPE_t type, char* para)
 {
-    if (para == NULL) { // 按键 
-        CmdPowerCtrlHandlerDirIn(NULL); // 本地按键
-    }
-    else if (strchr(para, '#') == NULL) { // 服务器下发的，纯开机命令，：原始信息:#on\r\n，但此处只有\r\n
-        CmdPowerCtrlHandlerDirIn(para); // 本地按键
+    if ((type == UPDATE_PRESSED) || (strchr(para, '#') == NULL)) { // 按键  ||  服务器下发的，纯开机命令，：原始信息:#on\r\n，但此处只有\r\n
+        PowerCtrlHandlerDirIn(type, para); // 本地按键
     }
     else{ // 对服务器下发的命令，进行解析。例如：#3#0，#3#1.    on#3#0
         uint8_t cmdType;
@@ -67,26 +64,37 @@ static void CmdPowerCtrlHandlerOn(char* para)
                 Serial.printf("para success, %s\r\n", fanDirOut ? "dir out" : "dir in");
             }
             if (fanDirOut == ENABLE) {
-                CmdPowerCtrlHandlerDirOut(para);
+                PowerCtrlHandlerDirOut(type, para);
             }else{
-                CmdPowerCtrlHandlerDirIn(para);
+                PowerCtrlHandlerDirIn(type, para);
             }
         } else {
             Serial.printf("para error, cmdType = %d ,fanDirOut = %d\r\n", temp1, temp2);
         }
     }
 }
-
-static void CmdPowerCtrlHandlerOff(char* para)
+static void CmdPowerCtrlHandlerOn(char* para)
 {
-    Serial.print("power off the fan");
+    PowerCtrlHandlerOn(UPDATE_TYPE_SERVICE_CMD, para);
+}
+static void PowerCtrlHandlerOff(UPDATE_TYPE_t type, char* para)
+{
     GPIO_setPinStatus(PinFANEnable, DISABLE);
     g_PowerStateOfAPP = (POWER_STATE_IO_t)DISABLE;
     delay(POWER_OFF_REALY_MS);    // 继电器完全断电
     LastSyncTickReset(); // 等一会儿再同步
-    if ((para == NULL) || (strstr(para, CUSTOM_CMD_OFF) != NULL)) { // 按键 || 服务器下发的是纯off，而不是关机后开机
+     // 按键 || 服务器下发的是纯off，而不是关机后开机
+    if ((type == UPDATE_PRESSED) && (*para == false) || 
+        ((type == UPDATE_TYPE_SERVICE_CMD) && (strstr(para, CUSTOM_CMD_OFF) != NULL))) {
         GPIO_setPinStatus(PinFANDirctionOut, DISABLE);
+        Serial.println("power off the fan");
+    }else{
+        Serial.println("power off the fan for safe");
     }
+}
+static void CmdPowerCtrlHandlerOff(char* para)
+{
+    PowerCtrlHandlerOff(UPDATE_TYPE_SERVICE_CMD, para);
 }
 Ticker timer_DirIn, timer_DirOut; // 定义两个定时器
 
@@ -113,21 +121,29 @@ static void timerCallback_DirOut(bool isKeyPressed){
     }
 }
 
-static void CmdPowerCtrlHandlerDirIn(char* para)
+static void PowerCtrlHandlerDirIn(UPDATE_TYPE_t type, char* para)
 {
-    CmdPowerCtrlHandlerOff(para);
+    PowerCtrlHandlerOff(type, para);
     GPIO_setPinStatus(PinFANDirctionOut, DISABLE);
 
-    timer_DirIn.once_ms(POWER_OFF_STABLE_MS, timerCallback_DirIn, para == NULL);
+    timer_DirIn.once_ms(POWER_OFF_STABLE_MS, timerCallback_DirIn, type == UPDATE_PRESSED);
+}
+static void CmdPowerCtrlHandlerDirIn(char* para)
+{
+    PowerCtrlHandlerDirIn(UPDATE_TYPE_SERVICE_CMD, para);
 }
 
-static void CmdPowerCtrlHandlerDirOut(char* para)
+static void PowerCtrlHandlerDirOut(UPDATE_TYPE_t type, char* para)
 {
-    CmdPowerCtrlHandlerOff(para);
+    PowerCtrlHandlerOff(type, para);
     GPIO_setPinStatus(PinFANDirctionOut, ENABLE);
     delay(500);    // 继电器响应时间
 
-    timer_DirOut.once_ms(POWER_OFF_STABLE_MS, timerCallback_DirOut, para == NULL);
+    timer_DirOut.once_ms(POWER_OFF_STABLE_MS, timerCallback_DirOut, type == UPDATE_PRESSED);
+}
+static void CmdPowerCtrlHandlerDirOut(char* para)
+{
+    PowerCtrlHandlerDirOut(UPDATE_TYPE_SERVICE_CMD, para);
 }
 static void CmdGetHandler(char* para)
 {
@@ -435,19 +451,21 @@ void monitorButton()
     
     bool fanEnable = GPIO_isPinActive(PinFANEnable);
     bool fanDirOut = GPIO_isPinActive(PinFANDirctionOut);
+    char isPowerOffTemp = true; // 是否需要临时关闭，为了安全
     if (buttonPressedCount == ButtonAction_POWER) {
         if (fanEnable == ENABLE) {
-            CmdPowerCtrlHandlerOff(NULL);
+            isPowerOffTemp = false; //真正关机
+            PowerCtrlHandlerOff(UPDATE_PRESSED, &isPowerOffTemp);
             updateState(UPDATE_PRESSED);
         }else{
-            CmdPowerCtrlHandlerOn(NULL);
+            PowerCtrlHandlerOn(UPDATE_PRESSED, &isPowerOffTemp);
         }
     }else if (buttonPressedCount >= ButtonAction_DIR) {
         if (fanDirOut == ENABLE) {
-            CmdPowerCtrlHandlerDirIn(NULL);
+            PowerCtrlHandlerDirIn(UPDATE_PRESSED, &isPowerOffTemp);
             Serial.println(" for safe"); // 接着"power off the fan"
         }else{
-            CmdPowerCtrlHandlerDirOut(NULL);
+            PowerCtrlHandlerDirOut(UPDATE_PRESSED, &isPowerOffTemp);
             Serial.println(" for safe"); // 接着"power off the fan"
         }
     }

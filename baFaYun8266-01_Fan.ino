@@ -88,6 +88,7 @@ unsigned long AbsSub(unsigned long a, unsigned long b) {
 void loop()
 {
     static unsigned long lastPrintTick;
+    static char isPowerOffTemp = false; // 是否需要临时关闭，为了安全。不是临时关闭，是真的关闭
     unsigned long currentTick = millis();
     bool isFirstConnect = false;
 
@@ -107,7 +108,7 @@ void loop()
 
             if (isFirstConnect || (AbsSub(currentTick, g_lastUpdateTick) >= UPDATE_FORCE_PERIOD_S * 1000)) {
                 if (GPIO_isPinActive(PinFANEnable)){ // 开机一段时间后，自动关闭
-                    CmdPowerCtrlHandlerOff(NULL);
+                    PowerCtrlHandlerOff(UPDATE_PRESSED, &isPowerOffTemp);
                     updateState(UPDATE_TYPE_AUTO_POWEROFF);
                 }else{
                     updateState(UPDATE_TYPE_FORCE);
