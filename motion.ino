@@ -367,9 +367,9 @@ bool updateState(UPDATE_TYPE_t updateMode)
     if (fanEnable) {
         Serial.printf("Update State To Server , power on, %s\r\n", fanDirOut ? "out" : "in");
         if (fanDirOut){
-            return UpdateStateToServer(String(CUSTOM_CMD_ON)+"3#0");
+            return UpdateStateToServer(String(CUSTOM_CMD_ON)+"#3#0");
         }else{
-            return UpdateStateToServer(String(CUSTOM_CMD_ON)+"3#1");
+            return UpdateStateToServer(String(CUSTOM_CMD_ON)+"#3#1");
         }
     } else {
         Serial.printf("Update State To Server , power off\r\n");
