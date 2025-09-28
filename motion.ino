@@ -49,6 +49,10 @@ static void PowerCtrlHandlerOn(UPDATE_TYPE_t type, char* para)
 {
     if ((type == UPDATE_PRESSED) || (strchr(para, '#') == NULL)) { // 按键  ||  服务器下发的，纯开机命令，：原始信息:#on\r\n，但此处只有\r\n
         PowerCtrlHandlerDirIn(type, para); // 本地按键
+        if (type == UPDATE_TYPE_SERVICE_CMD) {
+            String cmd = String(CUSTOM_CMD_ON) + "_service";
+            UpdateStateToWechat(cmd); // 从服务器下发到本地时，同步到微信
+        }
     }
     else{ // 对服务器下发的命令，进行解析。例如：#3#0，#3#1.    on#3#0
         uint8_t cmdType;
@@ -64,8 +68,10 @@ static void PowerCtrlHandlerOn(UPDATE_TYPE_t type, char* para)
                 Serial.printf("para success, %s\r\n", fanDirOut ? "dir out" : "dir in");
             }
             if (fanDirOut == ENABLE) {
+                UpdateStateToWechat(CUSTOM_CMD_DIR_OUT); // 从服务器下发到本地时，同步到微信
                 PowerCtrlHandlerDirOut(type, para);
             }else{
+                UpdateStateToWechat(CUSTOM_CMD_DIR_IN); // 从服务器下发到本地时，同步到微信
                 PowerCtrlHandlerDirIn(type, para);
             }
         } else {
@@ -94,6 +100,7 @@ static void PowerCtrlHandlerOff(UPDATE_TYPE_t type, char* para)
 }
 static void CmdPowerCtrlHandlerOff(char* para)
 {
+    UpdateStateToWechat(CUSTOM_CMD_OFF); // 从服务器下发到本地时，同步到微信
     PowerCtrlHandlerOff(UPDATE_TYPE_SERVICE_CMD, para);
 }
 Ticker timer_DirIn, timer_DirOut; // 定义两个定时器
@@ -462,8 +469,10 @@ void monitorButton()
         if (fanEnable == ENABLE) {
             isPowerOffTemp = false; //真正关机
             PowerCtrlHandlerOff(UPDATE_PRESSED, &isPowerOffTemp);
+            UpdateStateToWechat(CUSTOM_CMD_OFF); // 从本地上传到服务器时，也同步到微信
             updateState(UPDATE_PRESSED);
         }else{
+            UpdateStateToWechat(CUSTOM_CMD_ON); // 从本地上传到服务器时，也同步到微信
             PowerCtrlHandlerOn(UPDATE_PRESSED, &isPowerOffTemp);
         }
     }else if (buttonPressedCount >= ButtonAction_DIR) {

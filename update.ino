@@ -27,7 +27,7 @@ void update_error(int err) {
 }
 
 
-void updateBin(char* para)
+ICACHE_FLASH_ATTR void updateBin(char* para)
 {
     para = para;
     Serial.println("start update");

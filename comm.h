@@ -54,7 +54,10 @@ typedef enum {
 #define server_ip "bemfa.com" // 巴法云服务器地址默认即可
 #define server_port 9501    // 服务器端口，tcp创客云端口8344
 
-#define TOPIC_CTRL "Fan003"   // 控制电脑开关
+#define TOPIC_FAN_DEBUG "FanTest003"
+#define TOPIC_FAN     "Fan003"  // 风扇主题
+
+#define TOPIC_CTRL TOPIC_FAN_DEBUG
 #define UID  "bd384547fd7f4bb19e4ab4db837b1c47" // 用户私钥，可在控制台获取,修改为自己的UID
                       // 主题名字，可在控制台新建
 const String g_updateURL = String("http://bin.bemfa.com/b/1BcYmQzODQ1NDdmZDdmNGJiMTllNGFiNGRiODM3YjFjNDc=") + TOPIC_CTRL + ".bin";                                                                                           // 主题名字，可在控制台新建
