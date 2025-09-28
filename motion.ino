@@ -36,7 +36,7 @@ const CmdHandlerList cmdList[] = {
 const String GetAllCmdList(void)
 {
     String cmdListStr = "#";
-    for (int i = 0; i < sizeof(cmdList) / sizeof(cmdList[0]); i++) {
+    for (unsigned int i = 0; i < sizeof(cmdList) / sizeof(cmdList[0]); i++) {
         cmdListStr += cmdList[i].cmd;
         cmdListStr += "#";
     }
@@ -84,7 +84,7 @@ static void PowerCtrlHandlerOff(UPDATE_TYPE_t type, char* para)
     delay(POWER_OFF_REALY_MS);    // 继电器完全断电
     LastSyncTickReset(); // 等一会儿再同步
      // 按键 || 服务器下发的是纯off，而不是关机后开机
-    if ((type == UPDATE_PRESSED) && (*para == false) || 
+    if (((type == UPDATE_PRESSED) && (*para == false)) || 
         ((type == UPDATE_TYPE_SERVICE_CMD) && (strstr(para, CUSTOM_CMD_OFF) != NULL))) {
         GPIO_setPinStatus(PinFANDirctionOut, DISABLE);
         Serial.println("power off the fan");
@@ -147,10 +147,12 @@ static void CmdPowerCtrlHandlerDirOut(char* para)
 }
 static void CmdGetHandler(char* para)
 {
+    para = para;
     updateState(UPDATE_TYPE_SERVICE_READ);
 }
 static void CmdHelpHandler(char* para)
 {
+    para = para;
     UpdateStateToServer(GetAllCmdList());
 }
 /*订阅的主题有消息发布时的回调函数*/
@@ -161,14 +163,14 @@ void MsgCallBack(char *topic, byte *payload, unsigned int payloadLen)
     }
     Serial.printf("Rev string: topic = %s\r\n", topic);
     Serial.printf("\tmsg : ");
-    for (int i = 0; i < payloadLen; i++) {
+    for (unsigned int i = 0; i < payloadLen; i++) {
         Serial.print((char)payload[i]); // 打印消息
     }
     Serial.println("");
     delay(10);
 
     // payload 和 alias 相比较，如果匹配，则执行对应的cmdHandler
-    for (int i = 0; i < sizeof(cmdList) / sizeof(cmdList[0]); i++) {
+    for (unsigned int i = 0; i < sizeof(cmdList) / sizeof(cmdList[0]); i++) {
         uint32_t cmdLen = strlen(cmdList[i].cmd);
         if (payloadLen >= cmdLen && strncmp((char *)payload, cmdList[i].alias, cmdLen) == 0) {
             payload[payloadLen] = '\0'; //防止cmdHandler越界
