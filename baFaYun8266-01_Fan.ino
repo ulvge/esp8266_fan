@@ -106,7 +106,9 @@ void loop()
                 //MonitorAppSync();
             }
 
-            if (isFirstConnect || (AbsSub(currentTick, g_lastUpdateTick) >= UPDATE_FORCE_PERIOD_S * 1000)) {
+            if (isFirstConnect) {
+                updateState(UPDATE_TYPE_FIRST_CONNECT); // 第一次连接成功，强制上传一次
+            } else if (AbsSub(currentTick, g_lastUpdateTick) >= UPDATE_FORCE_PERIOD_S * 1000) {
                 if (GPIO_isPinActive(PinFANEnable)){ // 开机一段时间后，自动关闭
                     PowerCtrlHandlerOff(UPDATE_PRESSED, &isPowerOffTemp);
                     updateState(UPDATE_TYPE_AUTO_POWEROFF);

@@ -18,6 +18,7 @@ typedef enum {
 } ButtonAction_st;
 
 typedef enum {
+    UPDATE_TYPE_FIRST_CONNECT= 0,  // 刚连上网
 	UPDATE_TYPE_FORCE = 1,  // 周期性强制更新
     UPDATE_PRESSED = 2, // 状态改变时更新
     UPDATE_TYPE_SERVICE_READ = 3, // 服务器查询时更新

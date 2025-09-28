@@ -351,7 +351,9 @@ bool updateState(UPDATE_TYPE_t updateMode)
     if (MQTTClient.state() != MQTT_CONNECTED) {
         return false;
     }
-    if (updateMode == UPDATE_TYPE_FORCE) {
+    if (updateMode == UPDATE_TYPE_FIRST_CONNECT) {
+        Serial.printf("-----first connect\r\n");
+    } else if (updateMode == UPDATE_TYPE_FORCE) {
         Serial.printf("-----force\r\n");
     } else if (updateMode == UPDATE_TYPE_SERVICE_READ){
         Serial.printf("-----service read\r\n");
@@ -359,6 +361,8 @@ bool updateState(UPDATE_TYPE_t updateMode)
         Serial.printf("-----key pressed\r\n");
     } else if (updateMode == UPDATE_TYPE_UNMATCH_SYNC){
         Serial.printf("-----app with power state un match, then sync\r\n");
+    } else if (updateMode == UPDATE_TYPE_AUTO_POWEROFF) {
+        Serial.printf("-----Auto power off\r\n");
     }
     LastUpdateTickReset();
     LastSyncTickReset(); // 刚刚同步过，等一会儿再同步
