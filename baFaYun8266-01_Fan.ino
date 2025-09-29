@@ -67,6 +67,7 @@ volatile unsigned long g_lastUpdateTick;
 void LastUpdateTickReset()
 {
     g_lastUpdateTick = millis();
+    Serial.printf("-----Update g_lastUpdateTick\r\n");
 }
 
 volatile unsigned long g_lastSyncTick;  // app 和实际的检测 状态 同步
@@ -108,6 +109,8 @@ void loop()
 
             if (isFirstConnect) {
                 updateState(UPDATE_TYPE_FIRST_CONNECT); // 第一次连接成功，强制上传一次
+                String cmd = String(CUSTOM_CMD_OFF) + "_first";
+                UpdateStateToWechat(cmd); // startup 从本地上传到服务器时，也同步到微信
             } else if (AbsSub(currentTick, g_lastUpdateTick) >= UPDATE_FORCE_PERIOD_S * 1000) {
                 if (GPIO_isPinActive(PinFANEnable)){ // 开机一段时间后，自动关闭
                     PowerCtrlHandlerOff(UPDATE_PRESSED, &isPowerOffTemp);

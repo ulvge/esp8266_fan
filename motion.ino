@@ -47,12 +47,13 @@ const int wifiCount = sizeof(wifiCredentials) / sizeof(wifiCredentials[0]);
 POWER_STATE_IO_t g_PowerStateOfAPP = POWER_STATE_IO_UNKONWN;
 static void PowerCtrlHandlerOn(UPDATE_TYPE_t type, char* para)
 {
-    if ((type == UPDATE_PRESSED) || (strchr(para, '#') == NULL)) { // 按键  ||  服务器下发的，纯开机命令，：原始信息:#on\r\n，但此处只有\r\n
+    if (type == UPDATE_PRESSED) { // 按键
         PowerCtrlHandlerDirIn(type, para); // 本地按键
-        if (type == UPDATE_TYPE_SERVICE_CMD) {
-            String cmd = String(CUSTOM_CMD_ON) + "_service";
-            UpdateStateToWechat(cmd); // 从服务器下发到本地时，同步到微信
-        }
+    }
+    else if ((type == UPDATE_TYPE_SERVICE_CMD) && ((para == NULL) || (strchr(para, '#') == NULL))) { //服务器下发的，纯开机命令on，：原始信息:#on\r\n，但此处只有\r\n
+        PowerCtrlHandlerDirIn(type, (char*)CUSTOM_CMD_ON); // 服务器下发的纯开机命令，没有方向
+        String cmd = String(CUSTOM_CMD_ON) + "_service";
+        UpdateStateToWechat(cmd); // service 从服务器下发到本地时，同步到微信
     }
     else{ // 对服务器下发的命令，进行解析。例如：#3#0，#3#1.    on#3#0
         uint8_t cmdType;
@@ -68,10 +69,10 @@ static void PowerCtrlHandlerOn(UPDATE_TYPE_t type, char* para)
                 Serial.printf("para success, %s\r\n", fanDirOut ? "dir out" : "dir in");
             }
             if (fanDirOut == ENABLE) {
-                UpdateStateToWechat(CUSTOM_CMD_DIR_OUT); // 从服务器下发到本地时，同步到微信
+                UpdateStateToWechat(CUSTOM_CMD_DIR_OUT); // service 从服务器下发到本地时，同步到微信
                 PowerCtrlHandlerDirOut(type, para);
             }else{
-                UpdateStateToWechat(CUSTOM_CMD_DIR_IN); // 从服务器下发到本地时，同步到微信
+                UpdateStateToWechat(CUSTOM_CMD_DIR_IN); // service 从服务器下发到本地时，同步到微信
                 PowerCtrlHandlerDirIn(type, para);
             }
         } else {
@@ -79,6 +80,8 @@ static void PowerCtrlHandlerOn(UPDATE_TYPE_t type, char* para)
         }
     }
 }
+/// @brief 
+/// @param para  可能是 NULL, 也可能是 "#3#0" 之类的
 static void CmdPowerCtrlHandlerOn(char* para)
 {
     PowerCtrlHandlerOn(UPDATE_TYPE_SERVICE_CMD, para);
@@ -87,28 +90,34 @@ static void PowerCtrlHandlerOff(UPDATE_TYPE_t type, char* para)
 {
     GPIO_setPinStatus(PinFANEnable, DISABLE);
     g_PowerStateOfAPP = (POWER_STATE_IO_t)DISABLE;
+    Serial.printf("wait for fan disable, then change the Dir %d ms\r\n", POWER_OFF_REALY_MS);
     delay(POWER_OFF_REALY_MS);    // 继电器完全断电
     LastSyncTickReset(); // 等一会儿再同步
      // 按键 || 服务器下发的是纯off，而不是关机后开机
     if (((type == UPDATE_PRESSED) && (*para == false)) || 
         ((type == UPDATE_TYPE_SERVICE_CMD) && (strstr(para, CUSTOM_CMD_OFF) != NULL))) {
         GPIO_setPinStatus(PinFANDirctionOut, DISABLE);
-        Serial.println("power off the fan");
+        Serial.printf("power off the fan type = %d\r\n", type);
     }else{
-        Serial.println("power off the fan for safe");
+        if (type == UPDATE_PRESSED) {
+            Serial.printf("power off-on the fan for safe, type = %d\r\n", type);
+        } else if (type == UPDATE_TYPE_SERVICE_CMD) {
+            Serial.printf("power off-on the fan for safe, type = %d, para = %s\r\n", type, para ? para : "null");
+        }
     }
 }
 static void CmdPowerCtrlHandlerOff(char* para)
 {
+    para = para; // 这里其实是 NULL
     UpdateStateToWechat(CUSTOM_CMD_OFF); // 从服务器下发到本地时，同步到微信
-    PowerCtrlHandlerOff(UPDATE_TYPE_SERVICE_CMD, para);
+    PowerCtrlHandlerOff(UPDATE_TYPE_SERVICE_CMD, (char*)CUSTOM_CMD_OFF);
 }
 Ticker timer_DirIn, timer_DirOut; // 定义两个定时器
 
 static void timerCallback_DirIn(bool isKeyPressed){
     GPIO_setPinStatus(PinFANEnable, ENABLE);
     g_PowerStateOfAPP = (POWER_STATE_IO_t)ENABLE;
-    Serial.println("power on, dir in");
+    Serial.println("timerCallback power on, dir in");
     
     if (isKeyPressed) {
         updateState(UPDATE_PRESSED);
@@ -120,7 +129,7 @@ static void timerCallback_DirOut(bool isKeyPressed){
     GPIO_setPinStatus(PinFANEnable, ENABLE);
     g_PowerStateOfAPP = (POWER_STATE_IO_t)ENABLE;
     
-    Serial.println("power on, dir out");
+    Serial.println("timerCallback power on, dir out");
     if (isKeyPressed) {
         updateState(UPDATE_PRESSED);
     }else{
@@ -130,6 +139,10 @@ static void timerCallback_DirOut(bool isKeyPressed){
 
 static void PowerCtrlHandlerDirIn(UPDATE_TYPE_t type, char* para)
 {
+    if ((type == UPDATE_PRESSED) && (*para == false)){ // 按键，且是开机命令
+        timerCallback_DirIn(true);
+        return;
+    }
     PowerCtrlHandlerOff(type, para);
     GPIO_setPinStatus(PinFANDirctionOut, DISABLE);
 
@@ -144,7 +157,7 @@ static void PowerCtrlHandlerDirOut(UPDATE_TYPE_t type, char* para)
 {
     PowerCtrlHandlerOff(type, para);
     GPIO_setPinStatus(PinFANDirctionOut, ENABLE);
-    delay(500);    // 继电器响应时间
+    //delay(500);    // 继电器响应时间
 
     timer_DirOut.once_ms(POWER_OFF_STABLE_MS, timerCallback_DirOut, type == UPDATE_PRESSED);
 }
@@ -169,7 +182,7 @@ void MsgCallBack(char *topic, byte *payload, unsigned int payloadLen)
         return;
     }
     Serial.printf("Rev string: topic = %s\r\n", topic);
-    Serial.printf("\tmsg : ");
+    Serial.printf("------msg : ");
     for (unsigned int i = 0; i < payloadLen; i++) {
         Serial.print((char)payload[i]); // 打印消息
     }
@@ -465,14 +478,18 @@ void monitorButton()
     bool fanEnable = GPIO_isPinActive(PinFANEnable);
     bool fanDirOut = GPIO_isPinActive(PinFANDirctionOut);
     char isPowerOffTemp = true; // 是否需要临时关闭，为了安全
+    Serial.printf(" now state: %s, %s\r\n", fanEnable ? "power on" : "power off", fanDirOut ? "out" : "in"); // 接着"power off the fan"
     if (buttonPressedCount == ButtonAction_POWER) {
-        if (fanEnable == ENABLE) {
+        if (fanEnable == ENABLE) { // 之前是开机，现在需要关机
             isPowerOffTemp = false; //真正关机
             PowerCtrlHandlerOff(UPDATE_PRESSED, &isPowerOffTemp);
-            UpdateStateToWechat(CUSTOM_CMD_OFF); // 从本地上传到服务器时，也同步到微信
+            UpdateStateToWechat(CUSTOM_CMD_OFF); // button 从本地上传到服务器时，也同步到微信
             updateState(UPDATE_PRESSED);
-        }else{
-            UpdateStateToWechat(CUSTOM_CMD_ON); // 从本地上传到服务器时，也同步到微信
+        }else{ // 之前是关机，现在需要开机
+            if ((fanDirOut == false) && (millis() - g_lastUpdateTick >= POWER_OFF_STABLE_MS)) {
+                isPowerOffTemp = false; // 不需要先关机等待，可以直接开机
+            }
+            UpdateStateToWechat(CUSTOM_CMD_ON); // button 从本地上传到服务器时，也同步到微信
             PowerCtrlHandlerOn(UPDATE_PRESSED, &isPowerOffTemp);
         }
     }else if (buttonPressedCount >= ButtonAction_DIR) {

@@ -101,8 +101,9 @@ bool GPIO_setPinStatus(GPIO_enum alias, ControlStatus isActive)
     }
 
     pinMode(alias, OUTPUT);
-    Serial.printf("init gpio ,set pin %d output, active mode is %d, isActive is %d\r\n", 
-        alias, p_gpioCfg->activeMode, isActive);
+    
+    Serial.printf("init gpio ,set pin %s output, active mode is %d, isActive is %d\r\n", 
+        p_gpioCfg->Name, p_gpioCfg->activeMode, isActive);
     if (p_gpioCfg->activeMode)
     {
         if (isActive == ENABLE)
