@@ -1,0 +1,312 @@
+
+[15:46:31.007]ÊÕ¡û¡ô0
+ld
+
+[15:46:31.068]ÊÕ¡û¡ô„âäƒNì’œpòn|äŒ$Œl "’ž„{’Ülœnàƒoã\0d „âs’p‚Œ$Œþ
+
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+
+[15:46:31.180]ÊÕ¡û¡ôFlash real size: 1048576 bytes (1024.00 KB, 1.00 MB)
+Flash size: 1048576 bytes (1024.00 KB, 1.00 MB)
+Flash speed: 40000000 Hz
+Sketch size: 332336 bytes (324.55 KB, 0.32 MB)
+Free sketch space: 626688 bytes (612.00 KB, 0.60 MB)
+default CPU Frequency: 80 MHz
+OTA url: http://bin.bemfa.com/b/1BcYmQzODQ1NDdmZDdmNGJiMTllNGFiNGRiODM3YjFjNDc=FanTest003.bin
+
+****    Build Date: 2025-09-29  15:44:16  ****
+
+[15:46:31.704]ÊÕ¡û¡ôBeginning...
+
+[15:46:31.810]ÊÕ¡û¡ôConnecting to 5530
+.
+[15:46:33.835]ÊÕ¡û¡ô.
+[15:46:35.857]ÊÕ¡û¡ô.
+[15:46:36.706]ÊÕ¡û¡ô.
+[15:46:37.877]ÊÕ¡û¡ô.
+[15:46:39.900]ÊÕ¡û¡ô.
+[15:46:41.715]ÊÕ¡û¡ô.
+[15:46:41.917]ÊÕ¡û¡ô.Connecting to FAST_FFF43A
+
+[15:46:43.967]ÊÕ¡û¡ô.
+[15:46:45.987]ÊÕ¡û¡ô.
+[15:46:46.735]ÊÕ¡û¡ô.
+[15:46:48.006]ÊÕ¡û¡ô.
+[15:46:50.029]ÊÕ¡û¡ô.
+[15:46:51.745]ÊÕ¡û¡ô.
+[15:46:52.049]ÊÕ¡û¡ô.
+[15:46:52.073]ÊÕ¡û¡ôConnecting to hxzy_guest
+
+[15:46:54.095]ÊÕ¡û¡ô.
+[15:46:56.745]ÊÕ¡û¡ô.
+[15:46:56.987]ÊÕ¡û¡ô
+WiFi Connected!
+192.168.10.208
+60:01:94:D0:50:33
+
+Attempting MQTT connection...
+
+[15:46:57.081]ÊÕ¡û¡ôMQTT connected
+-----first connect
+..Update g_lastUpdateTick..
+Update State To Server , power off
+
+[15:46:57.187]ÊÕ¡û¡ôHTTP get deviceType: fan
+HTTP get name: æµ‹è¯•çš„é£Žæ‰‡
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off_first
+
+[15:46:57.657]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+--Keep alive:
+
+[15:47:01.586]ÊÕ¡û¡ôRev string: topic = FanTest003
+------msg : on
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:02.598]ÊÕ¡û¡ôpower off-on the fan for safe, type = 6, para = on
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=on_service
+
+[15:47:03.000]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+Rev string: topic = FanTest003
+------msg : off
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off
+
+[15:47:03.405]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:04.419]ÊÕ¡û¡ôinit gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+power off the fan type = 6
+.Rev string: topic = FanTest003
+------msg : on
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:05.451]ÊÕ¡û¡ôpower off-on the fan for safe, type = 6, para = on
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+@@Pause the last timer Dirin 
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=on_service
+
+[15:47:05.872]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+Rev string: topic = FanTest003
+------msg : off
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off
+
+[15:47:06.329]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:07.338]ÊÕ¡û¡ôinit gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+power off the fan type = 6
+Rev string: topic = FanTest003
+------msg : on
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:08.370]ÊÕ¡û¡ôpower off-on the fan for safe, type = 6, para = on
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+@@Pause the last timer Dirin 
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=on_service
+
+[15:47:08.830]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+Rev string: topic = FanTest003
+------msg : off
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off
+
+[15:47:09.272]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:10.285]ÊÕ¡û¡ôinit gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+power off the fan type = 6
+.Rev string: topic = FanTest003
+------msg : on
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:11.317]ÊÕ¡û¡ôpower off-on the fan for safe, type = 6, para = on
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+@@Pause the last timer Dirin 
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=on_service
+
+[15:47:11.695]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+Rev string: topic = FanTest003
+------msg : off
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off
+
+[15:47:12.172]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:13.186]ÊÕ¡û¡ôinit gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+power off the fan type = 6
+Rev string: topic = FanTest003
+------msg : on
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:14.220]ÊÕ¡û¡ôpower off-on the fan for safe, type = 6, para = on
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+@@Pause the last timer Dirin 
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=on_service
+
+[15:47:14.730]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+Rev string: topic = FanTest003
+------msg : off
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off
+
+[15:47:15.138]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:16.154]ÊÕ¡û¡ôinit gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+power off the fan type = 6
+.Rev string: topic = FanTest003
+------msg : on
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:17.192]ÊÕ¡û¡ôpower off-on the fan for safe, type = 6, para = on
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+@@Pause the last timer Dirin 
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=on_service
+
+[15:47:17.563]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+Rev string: topic = FanTest003
+------msg : off
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off
+
+[15:47:18.183]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:19.196]ÊÕ¡û¡ôinit gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+power off the fan type = 6
+Rev string: topic = FanTest003
+------msg : on
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:20.229]ÊÕ¡û¡ôpower off-on the fan for safe, type = 6, para = on
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+@@Pause the last timer Dirin 
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=on_service
+
+[15:47:20.769]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+Rev string: topic = FanTest003
+------msg : off
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off
+
+[15:47:21.178]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:22.192]ÊÕ¡û¡ôinit gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+power off the fan type = 6
+.Rev string: topic = FanTest003
+------msg : on
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:23.225]ÊÕ¡û¡ôpower off-on the fan for safe, type = 6, para = on
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+@@Pause the last timer Dirin 
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=on_service
+
+[15:47:23.747]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+Rev string: topic = FanTest003
+------msg : off
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off
+
+[15:47:24.197]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:25.210]ÊÕ¡û¡ôinit gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+power off the fan type = 6
+Rev string: topic = FanTest003
+------msg : on
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:26.242]ÊÕ¡û¡ôpower off-on the fan for safe, type = 6, para = on
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+@@Pause the last timer Dirin 
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=on_service
+
+[15:47:26.668]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+Rev string: topic = FanTest003
+------msg : off
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off
+
+[15:47:27.085]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+..Update g_lastUpdateTick..
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:47:28.099]ÊÕ¡û¡ôinit gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+power off the fan type = 6
+--Keep alive:
+.
+[15:47:31.245]ÊÕ¡û¡ôinit gpio ,set pin FANEnable output, active mode is 0, isActive is 1
+-----timerCallback power on, dir in
+
+[15:47:31.709]ÊÕ¡û¡ô.

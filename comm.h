@@ -38,6 +38,7 @@ typedef enum {
 #define CUSTOM_CMD_HELP              "help"
 #define CUSTOM_CMD_DIR_IN             "in" // 吸进来
 #define CUSTOM_CMD_DIR_OUT            "out" // 吹出去
+#define CUSTOM_CMD_REBOOT            "reboot" // 重启
 
 typedef enum {
     POWER_STATE_IO_UNKONWN = -1,

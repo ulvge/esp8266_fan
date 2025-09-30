@@ -1,0 +1,148 @@
+
+[15:01:17.078]ÊÕ¡û¡ô.
+[15:01:20.219]ÊÕ¡û¡ô--Keep alive:
+
+[15:01:22.088]ÊÕ¡û¡ô.
+[15:01:25.360]ÊÕ¡û¡ôButton pressed count: 1
+
+[15:01:27.091]ÊÕ¡û¡ô.
+[15:01:28.360]ÊÕ¡û¡ôButton pressed count is 1
+ now state: power on, in
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:01:29.367]ÊÕ¡û¡ôinit gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+power off the fan type = 2
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=off
+
+[15:01:29.761]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+-----Update g_lastUpdateTick
+-----key pressed
+-----Update g_lastUpdateTick
+Update State To Server , power off
+
+[15:01:32.091]ÊÕ¡û¡ô.
+[15:01:37.113]ÊÕ¡û¡ô.
+[15:01:42.097]ÊÕ¡û¡ô.
+[15:01:47.113]ÊÕ¡û¡ô.
+[15:01:50.234]ÊÕ¡û¡ô--Keep alive:
+
+[15:01:52.115]ÊÕ¡û¡ô.
+[15:01:55.691]ÊÕ¡û¡ôButton pressed count: 1
+
+[15:01:57.134]ÊÕ¡û¡ô.
+[15:01:58.699]ÊÕ¡û¡ôButton pressed count is 1
+ now state: power off, in
+Update to Wechat url:http://apis.bemfa.com/vb/wechat/v1/wechatWarn?uid=bd384547fd7f4bb19e4ab4db837b1c47&device=é£Žæ‰‡(æµ‹è¯•çš„é£Žæ‰‡)&message=on
+
+[15:01:59.123]ÊÕ¡û¡ôHTTP Update to Wechat success
+	payload: {"code":0,"msg":"success","data":{"code":0}}
+HTTP push msg to wechat success
+-----Update g_lastUpdateTick
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 1
+timerCallback power on, dir in
+-----key pressed
+-----Update g_lastUpdateTick
+Update State To Server , power on, in
+
+[15:02:02.150]ÊÕ¡û¡ô.
+[15:02:07.161]ÊÕ¡û¡ô.
+[15:02:12.181]ÊÕ¡û¡ô.
+[15:02:17.183]ÊÕ¡û¡ô.
+[15:02:20.238]ÊÕ¡û¡ô--Keep alive:
+
+[15:02:22.184]ÊÕ¡û¡ô.
+[15:02:27.198]ÊÕ¡û¡ô.
+[15:02:31.203]ÊÕ¡û¡ôButton pressed count: 2
+
+[15:02:34.219]ÊÕ¡û¡ôButton pressed count is 2
+ now state: power on, in
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:02:35.210]ÊÕ¡û¡ôpower off-on the fan for safe, type = 2
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 1
+ for safe
+
+[15:02:37.206]ÊÕ¡û¡ô.
+[15:02:40.211]ÊÕ¡û¡ôinit gpio ,set pin FANEnable output, active mode is 0, isActive is 1
+timerCallback power on, dir out
+-----key pressed
+-----Update g_lastUpdateTick
+Update State To Server , power on, out
+
+[15:02:42.222]ÊÕ¡û¡ô.
+[15:02:47.222]ÊÕ¡û¡ô.
+[15:02:50.242]ÊÕ¡û¡ô--Keep alive:
+
+[15:02:52.229]ÊÕ¡û¡ô.
+[15:04:20.259]ÊÕ¡û¡ô--Keep alive:
+
+[15:04:22.409]ÊÕ¡û¡ô.
+[15:04:38.208]ÊÕ¡û¡ôinit gpio ,set pin FANEnable output, active mode is 0, isActive is 1
+timerCallback power on, dir in
+-----key pressed
+-----Update g_lastUpdateTick
+Update State To Server , power on, in
+.
+[15:04:43.254]ÊÕ¡û¡ô.
+[15:04:48.267]ÊÕ¡û¡ô.
+[15:04:50.268]ÊÕ¡û¡ô--Keep alive:
+
+[15:04:53.272]ÊÕ¡û¡ô.
+[15:04:58.281]ÊÕ¡û¡ô.
+[15:05:03.287]ÊÕ¡û¡ô.
+[15:05:08.292]ÊÕ¡û¡ô.
+[15:05:11.438]ÊÕ¡û¡ôButton pressed count: 1
+
+[15:05:12.072]ÊÕ¡û¡ôButton pressed count: 2
+
+[15:05:13.314]ÊÕ¡û¡ô.
+[15:05:15.087]ÊÕ¡û¡ôButton pressed count is 2
+ now state: power on, in
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:05:16.094]ÊÕ¡û¡ôpower off-on the fan for safe, type = 2
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 1
+ for safe
+
+[15:05:18.318]ÊÕ¡û¡ô.
+[15:05:20.277]ÊÕ¡û¡ô--Keep alive:
+
+[15:05:21.095]ÊÕ¡û¡ôinit gpio ,set pin FANEnable output, active mode is 0, isActive is 1
+timerCallback power on, dir out
+-----key pressed
+-----Update g_lastUpdateTick
+Update State To Server , power on, out
+
+[15:05:23.331]ÊÕ¡û¡ô.
+[15:05:28.342]ÊÕ¡û¡ô>
+[15:05:29.710]ÊÕ¡û¡ôB
+[15:05:30.422]ÊÕ¡û¡ôÿButton pressed count: 2
+
+[15:05:33.351]ÊÕ¡û¡ô.
+[15:05:33.426]ÊÕ¡û¡ôButton pressed count is 2
+ now state: power on, out
+init gpio ,set pin FANEnable output, active mode is 0, isActive is 0
+wait for fan disable, then change the Dir 1000 ms
+
+[15:05:34.430]ÊÕ¡û¡ôpower off-on the fan for safe, type = 2
+init gpio ,set pin FANDirctionOut output, active mode is 0, isActive is 0
+ for safe
+
+[15:05:38.343]ÊÕ¡û¡ô.
+[15:05:39.432]ÊÕ¡û¡ôinit gpio ,set pin FANEnable output, active mode is 0, isActive is 1
+timerCallback power on, dir in
+-----key pressed
+-----Update g_lastUpdateTick
+Update State To Server , power on, in
+
+[15:05:43.355]ÊÕ¡û¡ô.
+[15:05:48.375]ÊÕ¡û¡ô.
+[15:05:50.288]ÊÕ¡û¡ô--Keep alive:
+
+[15:05:53.372]ÊÕ¡û¡ô.
+[15:05:58.378]ÊÕ¡û¡ô.

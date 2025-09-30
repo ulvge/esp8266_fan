@@ -30,6 +30,7 @@ const CmdHandlerList cmdList[] = {
     {"off",         CUSTOM_CMD_OFF, CmdPowerCtrlHandlerOff},
     {"in",          CUSTOM_CMD_DIR_IN, CmdPowerCtrlHandlerDirIn},
     {"out",          CUSTOM_CMD_DIR_OUT, CmdPowerCtrlHandlerDirOut},
+    {"reboot",        CUSTOM_CMD_REBOOT, CmdHandlerReboot},
     {"help",        CUSTOM_CMD_HELP, CmdHelpHandler},
     {"?",           CUSTOM_CMD_HELP, CmdHelpHandler}
 };
@@ -44,6 +45,11 @@ const String GetAllCmdList(void)
 }
 const int wifiCount = sizeof(wifiCredentials) / sizeof(wifiCredentials[0]);
 
+static void CmdHandlerReboot(char* para)
+{
+    para = para;
+    ESP.restart();
+}
 POWER_STATE_IO_t g_PowerStateOfAPP = POWER_STATE_IO_UNKONWN;
 static void PowerCtrlHandlerOn(UPDATE_TYPE_t type, char* para)
 {
@@ -117,7 +123,7 @@ Ticker timer_DirIn, timer_DirOut; // 定义两个定时器
 static void timerCallback_DirIn(bool isKeyPressed){
     GPIO_setPinStatus(PinFANEnable, ENABLE);
     g_PowerStateOfAPP = (POWER_STATE_IO_t)ENABLE;
-    Serial.println("timerCallback power on, dir in");
+    Serial.println("-----timerCallback power on, dir in");
     
     if (isKeyPressed) {
         updateState(UPDATE_PRESSED);
@@ -129,7 +135,7 @@ static void timerCallback_DirOut(bool isKeyPressed){
     GPIO_setPinStatus(PinFANEnable, ENABLE);
     g_PowerStateOfAPP = (POWER_STATE_IO_t)ENABLE;
     
-    Serial.println("timerCallback power on, dir out");
+    Serial.println("-----timerCallback power on, dir out");
     if (isKeyPressed) {
         updateState(UPDATE_PRESSED);
     }else{
@@ -146,6 +152,10 @@ static void PowerCtrlHandlerDirIn(UPDATE_TYPE_t type, char* para)
     PowerCtrlHandlerOff(type, para);
     GPIO_setPinStatus(PinFANDirctionOut, DISABLE);
 
+    if (timer_DirIn.active()) {
+        timer_DirIn.detach(); // 停止上次的定时器
+        Serial.printf("@@Pause the last timer Dirin \r\n");
+    }
     timer_DirIn.once_ms(POWER_OFF_STABLE_MS, timerCallback_DirIn, type == UPDATE_PRESSED);
 }
 static void CmdPowerCtrlHandlerDirIn(char* para)
@@ -158,7 +168,10 @@ static void PowerCtrlHandlerDirOut(UPDATE_TYPE_t type, char* para)
     PowerCtrlHandlerOff(type, para);
     GPIO_setPinStatus(PinFANDirctionOut, ENABLE);
     //delay(500);    // 继电器响应时间
-
+    if (timer_DirOut.active()) {
+        timer_DirOut.detach(); // 停止上次的定时器
+        Serial.printf("@@Pause the last timer Dirout \r\n");
+    }
     timer_DirOut.once_ms(POWER_OFF_STABLE_MS, timerCallback_DirOut, type == UPDATE_PRESSED);
 }
 static void CmdPowerCtrlHandlerDirOut(char* para)

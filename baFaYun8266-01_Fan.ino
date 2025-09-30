@@ -37,8 +37,24 @@ void printHardwareInfo()
     Serial.printf("default CPU Frequency: %d MHz\r\n", ESP.getCpuFreqMHz());
     Serial.printf("OTA url: %s\r\n", g_updateURL.c_str());
 
-    Serial.printf("Build Date: %s\n", __DATE__);
-    Serial.printf("Build Time: %s\n", __TIME__);
+// 解析编译时间
+    const char* buildDate = __DATE__;
+    char monthStr[4];
+    int day, year;
+    
+    // 解析 "MMM DD YYYY"
+    sscanf(buildDate, "%3s %d %d", monthStr, &day, &year);
+    
+    // 转换月份缩写为数字
+    const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    int month = 0;
+    for (int i = 0; i < 12; i++) {
+        if (strcmp(monthStr, months[i]) == 0) {
+            month = i + 1;
+            break;
+        }
+    }
+    Serial.printf("\r\n****    Build Date: %d-%02d-%02d  %s  ****\n", year, month, day, __TIME__);
     // 4Mbit = 0.5MByte  fre=10M
     // Flash real size: 524288 bytes (512.00 KB, 0.50 MB)
     // Flash size: 524288 bytes (512.00 KB, 0.50 MB)
@@ -67,7 +83,7 @@ volatile unsigned long g_lastUpdateTick;
 void LastUpdateTickReset()
 {
     g_lastUpdateTick = millis();
-    Serial.printf("-----Update g_lastUpdateTick\r\n");
+    Serial.printf("..Update g_lastUpdateTick..\r\n");
 }
 
 volatile unsigned long g_lastSyncTick;  // app 和实际的检测 状态 同步

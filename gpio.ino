@@ -63,6 +63,7 @@ bool GPIO_isPinActive(GPIO_enum alias)
 
     if (p_gpioCfg == NULL)
     {
+        Serial.printf("GPIO_isPinActive failed, not find alias %d\r\n", alias);
         return false;
     }
     int staus = digitalRead(alias);
@@ -77,6 +78,7 @@ bool GPIO_getPinName(GPIO_enum alias, const char **name)
 
     if (p_gpioCfg == NULL)
     {
+        Serial.printf("GPIO_isPinActive failed, not find alias %d\r\n", alias);
         return false;
     }
 
@@ -93,6 +95,7 @@ bool GPIO_setPinStatus(GPIO_enum alias, ControlStatus isActive)
 
     if (p_gpioCfg == NULL)
     {
+        Serial.printf("GPIO_isPinActive failed, not find alias %d\r\n", alias);
         return false;
     }
     
